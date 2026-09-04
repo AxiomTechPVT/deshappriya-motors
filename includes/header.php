@@ -9,7 +9,8 @@
     <link href="assets/css/style.css" rel="stylesheet">
 </head>
 <body>
-<div class="app-shell">
+<?php $customerLayout = $isAdmin && strpos((string) ($section ?? ''), 'customers') === 0; ?>
+<div class="app-shell <?= $customerLayout ? 'customer-layout' : '' ?>">
     <?php require __DIR__ . ($isAdmin ? '/admin-sidebar.php' : '/sidebar.php'); ?>
     <div class="main-area">
         <header class="topbar <?= $isAdmin ? 'admin-topbar' : '' ?>">

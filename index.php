@@ -67,6 +67,11 @@ if ($page === 'admin') {
     require_role('administrator');
     $user = current_user();
     $section = preg_replace('/[^a-z0-9_-]/i', '', $_GET['section'] ?? 'dashboard');
+    if (str_starts_with($section, 'customers')) {
+        require_once __DIR__ . '/includes/customers.php';
+        handle_customer_request($section);
+        exit;
+    }
     if ($section === 'settings-password') {
         redirect('index.php?page=password');
     }
