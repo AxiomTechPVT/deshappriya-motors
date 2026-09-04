@@ -72,6 +72,12 @@ if ($page === 'admin') {
         handle_customer_request($section);
         exit;
     }
+    if (str_starts_with($section, 'vehicles')) {
+        require_once __DIR__ . '/includes/customers.php';
+        require_once __DIR__ . '/includes/vehicles.php';
+        handle_vehicle_request($section);
+        exit;
+    }
     if ($section === 'settings-password') {
         redirect('index.php?page=password');
     }
