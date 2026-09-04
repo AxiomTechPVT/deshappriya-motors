@@ -136,3 +136,30 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .customer-modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:15px 24px 20px; border-top:1px solid #eaecf0; }
 .customer-modal-footer .btn { min-width:105px; font-size:11px; }
 @media (max-width:575px) { .customer-modal-backdrop { padding:12px; } .customer-modal { max-height:calc(100vh - 24px); } .customer-modal-header,.customer-modal-body { padding-left:16px; padding-right:16px; } .modal-detail-grid { grid-template-columns:1fr; } .modal-detail-wide { grid-column:auto; } .modal-vehicle-card { grid-template-columns:1fr 1fr; } .customer-modal-footer { padding-left:16px; padding-right:16px; } }
+.vehicle-list-panel,.vehicle-entry-panel { margin-top:16px; padding:16px; }
+.vehicle-list-page .vehicle-entry-panel { display:none; }
+.vehicle-filter-bar { display:grid; grid-template-columns:minmax(250px,2fr) repeat(2,minmax(150px,1fr)) auto auto; gap:12px; margin-bottom:17px; }
+.vehicle-filter-bar .form-control,.vehicle-filter-bar .form-select { height:36px; border-color:#d0d5dd; font-size:11px; }
+.vehicle-filter-bar .btn { height:36px; min-width:74px; font-size:11px; }
+.vehicle-table { min-width:1050px; }
+.vehicle-table th { color:#101828; font-size:10px; padding:11px 8px; }
+.vehicle-table td { color:#344054; font-size:11px; padding:12px 8px; }
+.vehicle-table td strong { color:#101828; }
+.vehicle-action { display:inline-grid; place-items:center; width:27px; height:27px; border-radius:6px; color:#155eef; background:#f8fafc; text-decoration:none; font-size:15px; }
+.vehicle-actions { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.vehicle-actions form { display:inline-flex; margin:0; }
+.vehicle-table td:last-child { white-space:nowrap; }
+.vehicle-remove-form { display:inline-block; margin:0; }
+.vehicle-remove { border:0; cursor:pointer; color:#dc3545; }
+.vehicle-entry-panel { border-left:3px solid #dc3545; }
+.vehicle-entry-panel .customer-list-heading { padding-top:0; }
+.vehicle-entry-panel .form-label { display:block; color:#101828; font-size:11px; font-weight:700; margin-bottom:7px; }
+.vehicle-entry-panel .form-label span { color:#dc3545; }
+.vehicle-entry-panel .form-control,.vehicle-entry-panel .form-select { min-height:36px; border-color:#d0d5dd; font-size:11px; }
+.vehicle-entry-panel .input-group-text { font-size:10px; background:#f2f4f7; border-color:#d0d5dd; }
+.vehicle-form-link { display:block; margin-top:5px; color:#dc3545; font-size:10px; }
+.add-customer-inline-button { display:inline-block; margin-top:7px; padding:5px 9px; border:1px solid #fda4af; border-radius:5px; color:#dc3545; background:#fff5f5; font-size:10px; font-weight:700; text-decoration:none; }
+.add-customer-inline-button:hover { color:#b42318; background:#ffe4e6; }
+.vehicle-entry-panel .customer-form-actions { margin-top:20px; }
+@media (max-width:991px) { .vehicle-filter-bar { grid-template-columns:repeat(2,minmax(0,1fr)); } .vehicle-filter-bar .form-control { grid-column:1/-1; } }
+@media (max-width:575px) { .vehicle-list-panel,.vehicle-entry-panel { padding:12px 10px; } .vehicle-filter-bar { grid-template-columns:1fr; } .vehicle-filter-bar .form-control { grid-column:auto; } .vehicle-filter-bar .btn,.vehicle-filter-bar a { width:100%; } }

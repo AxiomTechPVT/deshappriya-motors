@@ -9,8 +9,8 @@
     <link href="assets/css/style.css" rel="stylesheet">
 </head>
 <body>
-<?php $customerLayout = $isAdmin && strpos((string) ($section ?? ''), 'customers') === 0; ?>
-<div class="app-shell <?= $customerLayout ? 'customer-layout' : '' ?>">
+<?php $referenceLayout = $isAdmin && (strpos((string) ($section ?? ''), 'customers') === 0 || strpos((string) ($section ?? ''), 'vehicles') === 0); ?>
+<div class="app-shell <?= $referenceLayout ? 'customer-layout' : '' ?> <?= ($section ?? '') === 'vehicles' ? 'vehicle-list-page' : '' ?>">
     <?php require __DIR__ . ($isAdmin ? '/admin-sidebar.php' : '/sidebar.php'); ?>
     <div class="main-area">
         <header class="topbar <?= $isAdmin ? 'admin-topbar' : '' ?>">
