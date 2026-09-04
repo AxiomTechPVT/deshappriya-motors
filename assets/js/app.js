@@ -34,4 +34,58 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+    const addVehicleLink = document.querySelector('.vehicle-heading .customer-add-button[href="#vehicle-form"]');
+    if (addVehicleLink) addVehicleLink.href = 'index.php?page=admin&section=vehicles-add';
+
+    const vehicleActionData = document.querySelector('#vehicle-action-data');
+    const vehicleRows = document.querySelectorAll('.vehicle-table tbody tr');
+    if (vehicleActionData && vehicleRows.length) {
+        const actionData = JSON.parse(vehicleActionData.textContent || '{}');
+        vehicleRows.forEach((row, index) => {
+            const vehicleId = actionData.ids?.[index];
+            const actionCell = row.querySelector('td:last-child');
+            const viewLink = row.querySelector('.vehicle-action');
+            if (!vehicleId || !actionCell || !viewLink) return;
+            viewLink.href = `index.php?page=admin&section=vehicles-view&id=${vehicleId}`;
+            viewLink.title = 'View vehicle';
+            const editLink = document.createElement('a');
+            editLink.className = 'vehicle-action';
+            editLink.href = `index.php?page=admin&section=vehicles-edit&id=${vehicleId}`;
+            editLink.title = 'Edit vehicle';
+            editLink.textContent = '✎';
+            const removeForm = document.createElement('form');
+            removeForm.method = 'post';
+            removeForm.action = `index.php?page=admin&section=vehicles-remove&id=${vehicleId}`;
+            removeForm.className = 'vehicle-remove-form';
+            removeForm.innerHTML = `<input type="hidden" name="csrf_token" value="${actionData.csrf}"><button class="vehicle-action vehicle-remove" type="submit" title="Remove vehicle">×</button>`;
+            removeForm.addEventListener('submit', (event) => {
+                if (!window.confirm('Remove this vehicle from the active list?')) event.preventDefault();
+            });
+            actionCell.append(editLink, removeForm);
+        });
+    }
+
+    const makeOptions = ['Toyota', 'Honda', 'Nissan', 'Suzuki', 'Mitsubishi', 'Mazda', 'BMW', 'Mercedes-Benz', 'Kia', 'Hyundai', 'Tata', 'Bajaj', 'TVS', 'Yamaha', 'Hero', 'KTM', 'Royal Enfield', 'Other'];
+    const modelOptions = ['Axio', 'Aqua', 'Prius', 'Corolla', 'Vitz', 'Wagon R', 'Alto', 'Swift', 'Celerio', 'Civic', 'Fit', 'CR-V', 'March', 'Sunny', 'Leaf', 'Pulsar', 'Platina', 'CT 100', 'Apache', 'FZ', 'Dio', 'Gixxer', 'Three Wheeler', 'Other'];
+    const addEditableOptions = (selector, id, options) => {
+        let list = document.getElementById(id);
+        if (!list) {
+            list = document.createElement('datalist');
+            list.id = id;
+            options.forEach((option) => list.insertAdjacentHTML('beforeend', `<option value="${option}"></option>`));
+            document.body.appendChild(list);
+        }
+        document.querySelectorAll(selector).forEach((field) => { field.setAttribute('list', id); });
+    };
+    addEditableOptions('input[name="make"], input[name*="[make]"]', 'vehicle-make-options', makeOptions);
+    addEditableOptions('input[name="model"], input[name*="[model]"]', 'vehicle-model-options', modelOptions);
+
+    const customerField = document.querySelector('select[name="customer_id"]');
+    if (customerField && customerField.closest('.vehicle-add-card')) {
+        const addCustomerButton = document.createElement('a');
+        addCustomerButton.className = 'add-customer-inline-button';
+        addCustomerButton.href = 'index.php?page=admin&section=customers-add';
+        addCustomerButton.textContent = '+ Add New Customer';
+        customerField.parentElement.appendChild(addCustomerButton);
+    }
 });
