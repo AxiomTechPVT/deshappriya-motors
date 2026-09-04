@@ -12,9 +12,9 @@
 <div class="app-shell">
     <?php require __DIR__ . ($isAdmin ? '/admin-sidebar.php' : '/sidebar.php'); ?>
     <div class="main-area">
-        <header class="topbar">
+        <header class="topbar <?= $isAdmin ? 'admin-topbar' : '' ?>">
             <button class="btn menu-toggle d-lg-none" data-sidebar-toggle aria-label="Open navigation">MENU</button>
-            <div><span class="eyebrow"><?= $isAdmin ? 'Administrator workspace' : 'Operations hub' ?></span><span class="topbar-subtitle d-none d-md-inline">Keep the workshop moving.</span></div>
+            <?php if (!$isAdmin): ?><div><span class="eyebrow">Operations hub</span><span class="topbar-subtitle d-none d-md-inline">Keep the workshop moving.</span></div><?php endif; ?>
             <div class="topbar-tools"><span class="header-date d-none d-md-inline"><?= date('D, d M Y') ?></span><span class="notification-dot" aria-label="Notifications">!</span><div class="user-chip"><div class="avatar"><?= e(strtoupper(substr($user['name'], 0, 1))) ?></div><div class="d-none d-sm-block"><strong><?= e($user['name']) ?></strong><small><?= e(ucfirst($user['role'])) ?></small></div></div></div>
         </header>
         <main class="content-area">
