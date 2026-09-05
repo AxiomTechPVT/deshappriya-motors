@@ -163,3 +163,92 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .vehicle-entry-panel .customer-form-actions { margin-top:20px; }
 @media (max-width:991px) { .vehicle-filter-bar { grid-template-columns:repeat(2,minmax(0,1fr)); } .vehicle-filter-bar .form-control { grid-column:1/-1; } }
 @media (max-width:575px) { .vehicle-list-panel,.vehicle-entry-panel { padding:12px 10px; } .vehicle-filter-bar { grid-template-columns:1fr; } .vehicle-filter-bar .form-control { grid-column:auto; } .vehicle-filter-bar .btn,.vehicle-filter-bar a { width:100%; } }
+.jobcard-heading { margin-bottom:18px; }
+.jobcard-alert { margin-bottom:16px; }
+.jobcard-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; }
+.jobcard-main { min-width:0; }
+.jobcard-section { margin-bottom:16px; padding:18px; }
+.jobcard-section-title { display:flex; align-items:center; gap:9px; margin-bottom:17px; color:#155eef; }
+.jobcard-section-title > span { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:#eaf2ff; color:#155eef; font-size:11px; font-weight:800; }
+.jobcard-section-title h2 { margin:0; font-size:14px; color:#101828; }
+.jobcard-section-title h2 small { color:#667085; font-size:10px; font-weight:500; }
+.jobcard-section .form-label { color:#101828; font-size:11px; font-weight:700; }
+.jobcard-section .form-label span { color:#dc3545; }
+.jobcard-section .form-control,.jobcard-section .form-select { border-color:#d0d5dd; font-size:11px; }
+.jobcard-linked-info { margin-top:12px; padding:9px 11px; border:1px solid #abefc6; border-radius:5px; background:#ecfdf3; color:#087443; font-size:11px; }
+.jobcard-repeat-row,.jobcard-item-row { display:grid; gap:8px; align-items:center; margin-bottom:8px; }
+.jobcard-repeat-row { grid-template-columns:1.3fr 1fr 34px; }
+.jobcard-item-row { grid-template-columns:130px 1.5fr 80px 110px 110px 34px; }
+.repeat-remove { color:#dc3545; border:1px solid #fda4af; font-size:16px; }
+.jobcard-preview { height:max-content; position:sticky; top:20px; }
+.jobcard-preview dl { display:grid; grid-template-columns:1fr auto; gap:0; margin:0; }
+.jobcard-preview dt,.jobcard-preview dd { padding:12px 0; border-bottom:1px solid #f2f4f7; font-size:11px; }
+.jobcard-preview dt { color:#667085; }
+.jobcard-preview dd { margin:0; color:#101828; font-weight:700; text-align:right; }
+.jobcard-next-steps { margin-top:18px; padding:13px; border:1px solid #fedf89; border-radius:6px; background:#fffaeb; color:#7a2e0e; font-size:11px; }
+.jobcard-next-steps ul { margin:9px 0 0; padding-left:18px; }
+.jobcard-form-actions { display:flex; justify-content:flex-end; gap:10px; padding:4px 0 18px; }
+.jobcard-form-actions .btn { min-width:145px; font-size:11px; }
+.jobcard-filter-panel,.jobcard-list-panel { margin-top:16px; padding:16px; }
+.jobcard-list-heading { padding:0 4px 14px; border-bottom:1px solid #eaecf0; }
+.jobcard-list-heading h2 { margin:0; font-size:15px; color:#101828; }
+.jobcard-table { min-width:1050px; }
+.jobcard-table th { color:#101828; font-size:10px; padding:12px 8px; }
+.jobcard-table td { color:#344054; font-size:11px; padding:13px 8px; vertical-align:top; }
+.jobcard-table td strong,.jobcard-table td span,.jobcard-table td small { display:block; }
+.jobcard-table td small { margin-top:5px; color:#667085; }
+.jobcard-number { color:#dc3545; }
+.status-pending { color:#b54708; background:#fffaeb; }
+.status-ongoing { color:#155eef; background:#eff8ff; }
+.status-completed { color:#087443; background:#ecfdf3; }
+.priority-high { color:#b42318; }.priority-normal { color:#b54708; }.priority-low { color:#087443; }
+.jobcard-actions { display:flex; gap:6px; }
+@media (max-width:991px) { .jobcard-layout { grid-template-columns:1fr; } .jobcard-preview { position:static; } }
+@media (max-width:575px) { .jobcard-section { padding:14px; } .jobcard-repeat-row,.jobcard-item-row { grid-template-columns:1fr; } .jobcard-form-actions { flex-direction:column; } .jobcard-form-actions .btn { width:100%; } }
+.jobcard-heading-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.jobcard-heading-actions .btn { font-size:11px; }
+.jobcard-vehicle-lookup { display:flex; align-items:center; gap:10px; }
+.jobcard-vehicle-lookup .jobcard-vehicle-select { flex:1; }
+.jobcard-vehicle-lookup .jobcard-vehicle-search { flex:1; min-width:0; }
+.jobcard-search-hint { margin-top:6px; color:#667085; font-size:10px; }
+.jobcard-vehicle-lookup .btn { white-space:nowrap; font-size:11px; }
+.jobcard-or { color:#667085; font-size:11px; }
+.jobcard-loaded-grid { display:grid; grid-template-columns:1fr 1.3fr; gap:22px; margin-top:16px; padding-top:16px; border-top:1px solid #f2f4f7; }
+.jobcard-loaded-grid h3 { margin:0 0 12px; color:#101828; font-size:11px; }
+.jobcard-loaded-grid .form-label { margin-top:9px; }
+.jobcard-loaded-grid .form-label:first-of-type { margin-top:0; }
+.jobcard-items-table { overflow-x:auto; }
+.jobcard-item-header,.jobcard-item-row { min-width:780px; }
+.jobcard-item-header { display:grid; grid-template-columns:28px 130px 1.5fr 80px 110px 110px 34px; gap:8px; padding:0 0 8px; color:#667085; font-size:10px; font-weight:700; }
+.jobcard-item-row { display:grid; grid-template-columns:28px 130px 1.5fr 80px 110px 110px 34px; gap:8px; align-items:center; margin-bottom:8px; }
+.jobcard-item-row > span { color:#667085; font-size:11px; text-align:center; }
+.preview-customer,.preview-vehicle { margin-top:20px; padding-top:16px; border-top:1px solid #eaecf0; }
+.preview-customer h3,.preview-vehicle h3 { margin:0 0 8px; color:#667085; font-size:11px; }
+.preview-customer strong,.preview-customer span,.preview-vehicle strong,.preview-vehicle span { display:block; color:#101828; font-size:12px; margin-top:5px; }
+.preview-customer span,.preview-vehicle span { color:#667085; font-size:11px; }
+.new-invoice-card { margin-top:14px; padding:13px; border:1px solid #b2ddff; border-radius:6px; background:#eff8ff; color:#155eef; font-size:11px; }
+.new-invoice-card p { color:#344054; line-height:1.5; }
+.new-invoice-card .btn { width:100%; font-size:11px; }
+.create-another { display:flex; align-items:center; gap:7px; margin-right:auto; color:#344054; font-size:11px; }
+@media (max-width:767px) { .jobcard-heading-actions { margin-top:14px; } .jobcard-vehicle-lookup { align-items:stretch; flex-direction:column; } .jobcard-or { text-align:center; } .jobcard-loaded-grid { grid-template-columns:1fr; } .jobcard-form-actions .create-another { margin-right:0; } }
+
+/* Keep the new job card layout scoped and stable after Bootstrap is loaded. */
+body .jobcard-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
+body .jobcard-section { margin-bottom:16px; padding:18px; }
+body .jobcard-section-title { display:flex; align-items:center; gap:9px; margin-bottom:17px; }
+body .jobcard-section-title h2 { margin:0; color:#101828; font-size:14px; line-height:1.35; font-weight:700; }
+body .jobcard-loaded-grid { display:grid; grid-template-columns:1fr 1.3fr; gap:22px; }
+body .jobcard-preview { height:max-content; position:sticky; top:20px; }
+body .jobcard-item-header { display:grid; grid-template-columns:28px 130px minmax(180px,1.5fr) 80px 110px 110px 34px; gap:8px; }
+body .jobcard-item-row { display:grid; grid-template-columns:28px 130px minmax(180px,1.5fr) 80px 110px 110px 34px; gap:8px; align-items:center; }
+@media (max-width:991px) {
+    body .jobcard-layout { grid-template-columns:1fr; }
+    body .jobcard-preview { position:static; }
+}
+@media (max-width:767px) {
+    body .jobcard-loaded-grid { grid-template-columns:1fr; }
+}
+@media (max-width:575px) {
+    body .jobcard-item-header,
+    body .jobcard-item-row { min-width:780px; }
+}

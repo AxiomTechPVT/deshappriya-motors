@@ -78,6 +78,12 @@ if ($page === 'admin') {
         handle_vehicle_request($section);
         exit;
     }
+    if (str_starts_with($section, 'jobcards-')) {
+        require_once __DIR__ . '/includes/customers.php';
+        require_once __DIR__ . '/includes/jobcards.php';
+        handle_job_card_request($section);
+        exit;
+    }
     if ($section === 'settings-password') {
         redirect('index.php?page=password');
     }

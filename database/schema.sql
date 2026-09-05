@@ -65,3 +65,58 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
     KEY `vehicles_number_index` (`vehicle_number`),
     CONSTRAINT `vehicles_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `job_cards` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `job_card_no` VARCHAR(30) NOT NULL,
+    `customer_id` BIGINT UNSIGNED NOT NULL,
+    `vehicle_id` BIGINT UNSIGNED NOT NULL,
+    `complaint` TEXT NULL,
+    `requested_work` TEXT NULL,
+    `bay` VARCHAR(60) NOT NULL,
+    `expected_delivery_date` DATE NOT NULL,
+    `priority` ENUM('low', 'normal', 'high') NOT NULL DEFAULT 'normal',
+    `mechanic` VARCHAR(120) NULL,
+    `notes` TEXT NULL,
+    `status` ENUM('pending', 'ongoing', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+    `created_by` BIGINT UNSIGNED NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `started_at` DATETIME NULL,
+    `completed_at` DATETIME NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `job_cards_no_unique` (`job_card_no`),
+    KEY `job_cards_customer_index` (`customer_id`),
+    KEY `job_cards_vehicle_index` (`vehicle_id`),
+    KEY `job_cards_status_index` (`status`),
+    CONSTRAINT `job_cards_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`),
+    CONSTRAINT `job_cards_vehicle_fk` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles` (`id`),
+    CONSTRAINT `job_cards_user_fk` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `job_card_services` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `job_card_id` BIGINT UNSIGNED NOT NULL,
+    `service_name` VARCHAR(160) NOT NULL,
+    `notes` TEXT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `job_card_services_job_index` (`job_card_id`),
+    CONSTRAINT `job_card_services_job_fk` FOREIGN KEY (`job_card_id`) REFERENCES `job_cards` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `job_card_items` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `job_card_id` BIGINT UNSIGNED NOT NULL,
+    `item_type` ENUM('part', 'service') NOT NULL DEFAULT 'part',
+    `item_name` VARCHAR(160) NOT NULL,
+    `item_code` VARCHAR(60) NULL,
+    `quantity` DECIMAL(12,2) NOT NULL DEFAULT 1,
+    `unit_price` DECIMAL(12,2) NOT NULL DEFAULT 0,
+    `discount` DECIMAL(12,2) NOT NULL DEFAULT 0,
+    `amount` DECIMAL(12,2) NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `job_card_items_job_index` (`job_card_id`),
+    CONSTRAINT `job_card_items_job_fk` FOREIGN KEY (`job_card_id`) REFERENCES `job_cards` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
