@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? 'Dashboard') ?> | Deshappriya Motors</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/css/style.css" rel="stylesheet">
+    <link href="assets/css/style.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/style.css') ?>" rel="stylesheet">
 </head>
 <body>
-<?php $referenceLayout = $isAdmin && (strpos((string) ($section ?? ''), 'customers') === 0 || strpos((string) ($section ?? ''), 'vehicles') === 0); ?>
+<?php $referenceLayout = $isAdmin && (strpos((string) ($section ?? ''), 'customers') === 0 || strpos((string) ($section ?? ''), 'vehicles') === 0 || strpos((string) ($section ?? ''), 'suppliers') === 0); ?>
 <div class="app-shell <?= $referenceLayout ? 'customer-layout' : '' ?> <?= ($section ?? '') === 'vehicles' ? 'vehicle-list-page' : '' ?>">
     <?php require __DIR__ . ($isAdmin ? '/admin-sidebar.php' : '/sidebar.php'); ?>
     <div class="main-area">

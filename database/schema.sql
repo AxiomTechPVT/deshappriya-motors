@@ -13,6 +13,45 @@ CREATE TABLE IF NOT EXISTS `users` (
     UNIQUE KEY `users_email_unique` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS suppliers (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    supplier_code VARCHAR(20) NOT NULL,
+    name VARCHAR(160) NOT NULL,
+    contact_person VARCHAR(120) NULL,
+    phone VARCHAR(40) NOT NULL,
+    email VARCHAR(190) NULL,
+    address TEXT NULL,
+    tax_number VARCHAR(100) NULL,
+    notes TEXT NULL,
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY suppliers_code_unique (supplier_code),
+    KEY suppliers_name_index (name),
+    KEY suppliers_phone_index (phone),
+    KEY suppliers_status_index (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS supplier_products (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    supplier_id BIGINT UNSIGNED NOT NULL,
+    product_code VARCHAR(60) NULL,
+    product_name VARCHAR(160) NOT NULL,
+    category VARCHAR(100) NULL,
+    unit VARCHAR(30) NOT NULL DEFAULT 'piece',
+    buying_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    selling_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    opening_quantity DECIMAL(12,2) NOT NULL DEFAULT 0,
+    reorder_level DECIMAL(12,2) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY supplier_products_supplier_index (supplier_id),
+    KEY supplier_products_name_index (product_name),
+    CONSTRAINT supplier_products_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO `users` (`name`, `email`, `role`, `password`)
 VALUES
 ('Garage Administrator', 'admin@deshappriyamotors.test', 'administrator', '$2y$10$KKscRXRVulvlZBPWhNV/QukjXYSIk8VdwHTpN9Nx35TgA2pjmJlYG'),

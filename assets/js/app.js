@@ -37,6 +37,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const addVehicleLink = document.querySelector('.vehicle-heading .customer-add-button[href="#vehicle-form"]');
     if (addVehicleLink) addVehicleLink.href = 'index.php?page=admin&section=vehicles-add';
 
+    const supplierForm = document.querySelector('.supplier-form-card form');
+    if (supplierForm) {
+        const actions = supplierForm.querySelector('.customer-form-actions');
+        if (actions) {
+            const productSection = document.createElement('section');
+            productSection.className = 'supplier-products-section';
+            productSection.innerHTML = '<div class="supplier-products-heading"><div><h2>Products from this Supplier</h2><p>Add the products/items you purchase from this supplier.</p></div><button type="button" class="btn btn-outline-primary" data-add-supplier-product>+ Add Product</button></div><div class="supplier-product-header"><span>Product Code</span><span>Product Name *</span><span>Category</span><span>Unit</span><span>Buying Price</span><span>Selling Price</span><span>Opening Qty</span><span>Reorder Level</span><span></span></div><div data-supplier-products></div>';
+            actions.parentNode.insertBefore(productSection, actions);
+            const productList = productSection.querySelector('[data-supplier-products]');
+            const addProduct = productSection.querySelector('[data-add-supplier-product]');
+            const addProductRow = () => {
+                const index = productList.children.length;
+                productList.insertAdjacentHTML('beforeend', '<div class="supplier-product-row"><input class="form-control" name="products[' + index + '][code]" placeholder="PRD-001"><input class="form-control" name="products[' + index + '][name]" placeholder="Product name"><input class="form-control" name="products[' + index + '][category]" placeholder="Category"><input class="form-control" name="products[' + index + '][unit]" value="piece"><input class="form-control" name="products[' + index + '][buying_price]" type="number" min="0" step="0.01" value="0"><input class="form-control" name="products[' + index + '][selling_price]" type="number" min="0" step="0.01" value="0"><input class="form-control" name="products[' + index + '][quantity]" type="number" min="0" step="0.01" value="0"><input class="form-control" name="products[' + index + '][reorder_level]" type="number" min="0" step="0.01" value="0"><button type="button" class="btn btn-light supplier-product-remove" aria-label="Remove product">x</button></div>');
+            };
+            addProduct.addEventListener('click', addProductRow);
+            productList.addEventListener('click', (event) => {
+                const button = event.target.closest('.supplier-product-remove');
+                if (button) button.closest('.supplier-product-row').remove();
+            });
+            addProductRow();
+        }
+    }
+
+    let supplierModal = document.querySelector('[data-supplier-modal]');
+    const supplierButtons = document.querySelectorAll('.supplier-view-products');
+    if (!supplierModal && supplierButtons.length) {
+        document.body.insertAdjacentHTML('beforeend', '<div class="supplier-products-modal" data-supplier-modal hidden><div class="supplier-products-dialog"><button type="button" class="supplier-modal-close" data-close-supplier-modal aria-label="Close">x</button><span class="modal-eyebrow">Supplier Details</span><h2 data-supplier-modal-title>Supplier</h2><div class="supplier-modal-details" data-supplier-modal-details></div><h3 class="supplier-modal-products-heading">Products</h3><div data-supplier-modal-list></div></div></div>');
+        supplierModal = document.querySelector('[data-supplier-modal]');
+    }
+    if (supplierModal) {
+        const modalTitle = supplierModal.querySelector('[data-supplier-modal-title]');
+        const modalList = supplierModal.querySelector('[data-supplier-modal-list]');
+        const modalDetails = supplierModal.querySelector('[data-supplier-modal-details]');
+        const closeSupplierModal = () => { supplierModal.hidden = true; };
+        document.querySelectorAll('.supplier-view-products').forEach((button) => {
+            button.addEventListener('click', () => {
+                const products = JSON.parse(button.dataset.supplierProducts || '[]');
+                modalTitle.textContent = button.dataset.supplierName || 'Supplier Products';
+                modalDetails.innerHTML = '<div><span>Contact Person</span><strong>' + button.dataset.supplierContact + '</strong></div><div><span>Phone</span><strong>' + button.dataset.supplierPhone + '</strong></div><div><span>Email</span><strong>' + button.dataset.supplierEmail + '</strong></div><div><span>Status</span><strong>' + button.dataset.supplierStatus + '</strong></div>';
+                modalList.innerHTML = products.length ? products.map((product) => '<div class="supplier-modal-product"><div><strong>' + product.product_name + '</strong><small>' + (product.product_code || 'No code') + '</small></div><span>' + Number(product.buying_price).toFixed(2) + '</span></div>').join('') : '<p class="empty-note">No products have been added for this supplier.</p>';
+                supplierModal.hidden = false;
+            });
+        });
+        supplierModal.querySelector('[data-close-supplier-modal]')?.addEventListener('click', closeSupplierModal);
+        supplierModal.addEventListener('click', (event) => { if (event.target === supplierModal) closeSupplierModal(); });
+    }
+
     const vehicleActionData = document.querySelector('#vehicle-action-data');
     const vehicleRows = document.querySelectorAll('.vehicle-table tbody tr');
     if (vehicleActionData && vehicleRows.length) {
