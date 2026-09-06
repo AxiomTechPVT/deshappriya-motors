@@ -252,6 +252,28 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .modal-vehicle-card > div:first-child span { color:#155eef; margin-top:4px; }
 .customer-modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:15px 24px 20px; border-top:1px solid #eaecf0; }
 .customer-modal-footer .btn { min-width:105px; font-size:11px; }
+.other-income-summary { margin-top:16px; }
+.other-income-filters,.other-income-list { margin-top:16px; }
+.other-income-filters { padding:18px 20px; }
+.other-income-filter-bar { display:grid; grid-template-columns:minmax(220px,1.6fr) repeat(4,minmax(130px,1fr)) auto; align-items:end; gap:12px; }
+.other-income-filter-bar label { color:#101828; font-size:10px; font-weight:700; }
+.other-income-filter-bar .form-control,.other-income-filter-bar .form-select { width:100%; height:36px; margin-top:7px; border-color:#d0d5dd; font-size:11px; }
+.other-income-filter-actions { display:flex; gap:7px; }
+.other-income-filter-actions .btn { height:36px; font-size:11px; white-space:nowrap; }
+.other-income-list { padding:0 14px 16px; }
+.other-income-table { min-width:980px; }
+.other-income-table th { color:#101828; font-size:10px; padding:11px 8px; }
+.other-income-table td { color:#344054; font-size:11px; padding:12px 8px; }
+.other-income-table td strong { color:#101828; }
+.income-method { display:inline-block; padding:4px 8px; border-radius:5px; background:#eff6ff; color:#155eef; font-size:10px; font-weight:700; }
+.income-method-cash { background:#ecfdf3; color:#087443; }
+.income-method-card { background:#fff4df; color:#b54708; }
+.income-method-bank { background:#f4f3ff; color:#6941c6; }
+.income-method-other { background:#f2f4f7; color:#475467; }
+.other-income-modal { width:min(100%,720px); }
+.other-income-field-hint { display:block; margin-top:5px; color:var(--muted); font-size:10px; }
+@media (max-width:1100px) { .other-income-filter-bar { grid-template-columns:repeat(3,minmax(150px,1fr)); } .other-income-filter-bar label:first-child { grid-column:1/-1; } }
+@media (max-width:575px) { .other-income-filter-bar { grid-template-columns:1fr; } .other-income-filter-bar label:first-child { grid-column:auto; } .other-income-filter-actions .btn { flex:1; } }
 @media (max-width:575px) { .customer-modal-backdrop { padding:12px; } .customer-modal { max-height:calc(100vh - 24px); } .customer-modal-header,.customer-modal-body { padding-left:16px; padding-right:16px; } .modal-detail-grid { grid-template-columns:1fr; } .modal-detail-wide { grid-column:auto; } .modal-vehicle-card { grid-template-columns:1fr 1fr; } .customer-modal-footer { padding-left:16px; padding-right:16px; } }
 .vehicle-list-panel,.vehicle-entry-panel { margin-top:16px; padding:16px; }
 .vehicle-list-page .vehicle-entry-panel { display:none; }
