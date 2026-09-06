@@ -83,6 +83,9 @@ function handle_stock_request(string $section): void
     if($section==='stock-low'){$rows=stock_items(['status'=>'low']);$summary=stock_summary();$title='Low Stock';$sectionForHeader=$section;require __DIR__.'/../includes/header.php';require __DIR__.'/../views/stock-low.php';require __DIR__.'/../includes/footer.php';return;}
     if($section==='stock-purchases'){$filters=['date_from'=>trim((string)($_GET['date_from']??'')),'date_to'=>trim((string)($_GET['date_to']??'')),'payment_status'=>in_array($_GET['payment_status']??'', ['paid','partial','due'],true)?$_GET['payment_status']:''];$rows=purchase_rows($filters);$title='Stock Purchases';$sectionForHeader=$section;require __DIR__.'/../includes/header.php';require __DIR__.'/../views/stock-purchases.php';require __DIR__.'/../includes/footer.php';return;}
     $filters=['search'=>trim((string)($_GET['search']??'')),'category'=>trim((string)($_GET['category']??'')),'brand'=>trim((string)($_GET['brand']??'')),'status'=>in_array($_GET['status']??'', ['in','low','out'],true)?$_GET['status']:''];$rows=stock_items($filters);$summary=stock_summary();$categories=stock_categories();$brands=stock_brands();$title='Stock / Parts';$sectionForHeader=$section;require __DIR__.'/../includes/header.php';require __DIR__.'/../views/stock.php';require __DIR__.'/../includes/footer.php';
+}
+
+/* Legacy duplicate implementation retained for reference; disabled to avoid conflicts.
 function ensure_stock_tables(): void
 {
     static $ready=false; if($ready)return; $pdo=database();
@@ -114,3 +117,4 @@ function handle_stock_request(string $section): void { ensure_stock_tables();$id
     if($section==='stock-purchases'){$rows=stock_purchase_rows();$title='Stock Purchases';$sectionForHeader=$section;require __DIR__.'/../includes/header.php';require __DIR__.'/../views/stock-purchases.php';require __DIR__.'/../includes/footer.php';return;}
     $rows=stock_rows($section==='stock-low');$title=$section==='stock-low'?'Low Stock':'Stock / Parts';$sectionForHeader=$section;require __DIR__.'/../includes/header.php';require __DIR__.'/../views/stock.php';require __DIR__.'/../includes/footer.php';
 }
+*/

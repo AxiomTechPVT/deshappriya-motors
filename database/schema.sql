@@ -349,6 +349,8 @@ CREATE TABLE IF NOT EXISTS stock_batch_consumptions (
     KEY stock_batch_consumptions_batch_index (stock_batch_id),
     CONSTRAINT stock_batch_consumptions_item_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items (id) ON DELETE CASCADE,
     CONSTRAINT stock_batch_consumptions_batch_fk FOREIGN KEY (stock_batch_id) REFERENCES stock_batches (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS estimates (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     estimate_no VARCHAR(30) NOT NULL,
