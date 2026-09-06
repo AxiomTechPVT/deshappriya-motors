@@ -94,6 +94,13 @@ if ($page === 'admin') {
         handle_bay_request($section);
         exit;
     }
+    if (str_starts_with($section, 'appointments')) {
+        require_once __DIR__ . '/includes/customers.php';
+        require_once __DIR__ . '/includes/vehicles.php';
+        require_once __DIR__ . '/includes/appointments.php';
+        handle_appointment_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'employees')) {
         require_once __DIR__ . '/includes/employees.php';
         handle_employee_request($section);

@@ -241,3 +241,25 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
     KEY `vehicles_number_index` (`vehicle_number`),
     CONSTRAINT `vehicles_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS appointments (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    appointment_no VARCHAR(30) NOT NULL,
+    customer_id BIGINT UNSIGNED NOT NULL,
+    vehicle_id BIGINT UNSIGNED NULL,
+    appointment_date DATE NOT NULL,
+    appointment_time TIME NOT NULL,
+    requested_service VARCHAR(190) NOT NULL,
+    status ENUM('pending','confirmed','completed','cancelled','no_show') NOT NULL DEFAULT 'pending',
+    notes TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY appointments_no_unique (appointment_no),
+    KEY appointments_customer_index (customer_id),
+    KEY appointments_vehicle_index (vehicle_id),
+    KEY appointments_date_index (appointment_date),
+    KEY appointments_status_index (status),
+    CONSTRAINT appointments_customer_fk FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE,
+    CONSTRAINT appointments_vehicle_fk FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
