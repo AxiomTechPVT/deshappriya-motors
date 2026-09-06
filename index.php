@@ -83,6 +83,11 @@ if ($page === 'admin') {
         handle_supplier_request($section);
         exit;
     }
+    if (str_starts_with($section, 'employees')) {
+        require_once __DIR__ . '/includes/employees.php';
+        handle_employee_request($section);
+        exit;
+    }
     if ($section === 'settings-password') {
         redirect('index.php?page=password');
     }

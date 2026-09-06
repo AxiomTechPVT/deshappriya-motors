@@ -71,6 +71,17 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .action-links a,.action-links button { display:grid; place-items:center; width:26px; height:26px; border-radius:6px; background:#f8fafc; color:#155eef; font-size:15px; }
 .action-links form { display:inline-block; }
 .action-links button { color:#f04438; }
+.employee-actions { display:flex; align-items:center; gap:6px; }
+.employee-actions form { display:inline-flex; margin:0; }
+.employee-actions button { border:0; padding:0; cursor:pointer; }
+.employee-edit-modal { width:min(100%,780px); }
+.employee-edit-modal .form-label { color:#101828; font-size:11px; font-weight:700; }
+.attendance-status { display:inline-block; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700; }
+.attendance-present { color:#027a48; background:#ecfdf3; }
+.attendance-absent { color:#b42318; background:#fef3f2; }
+.attendance-leave { color:#b54708; background:#fffaeb; }
+.attendance-half_day { color:#175cd3; background:#eff8ff; }
+.attendance-mark-hidden { display:none; }
 .customer-table-footer { padding:12px 6px 0; border-top:1px solid #f2f4f7; font-size:10px; }
 .customer-pagination-wrap { display:flex; align-items:center; gap:24px; }
 .customer-pagination-wrap .pagination .page-link { min-width:30px; text-align:center; color:#344054; border-color:#d0d5dd; font-size:11px; }
@@ -122,6 +133,8 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .supplier-list-panel .supplier-table td { color:#344054; font-size:11px; padding:12px 8px; }
 .supplier-module-note { color:var(--muted); font-size:10px; }
 .supplier-form-card { max-width:none; }
+.employee-form-panel,.employee-record-panel { max-width:none; margin-top:16px; padding:22px; }
+.employee-form-panel .form-label,.employee-record-panel .form-label { color:#101828; font-size:11px; font-weight:700; }
 .supplier-product-count { display:block; color:#101828; font-size:12px; font-weight:700; }
 .supplier-product-preview { display:block; max-width:150px; overflow:hidden; color:var(--muted); font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
 .supplier-view-products { display:grid; place-items:center; width:42px; height:26px; border:0; border-radius:6px; background:#f8fafc; color:#155eef; font-size:11px; cursor:pointer; }

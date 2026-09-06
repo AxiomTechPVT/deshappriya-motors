@@ -84,6 +84,21 @@ document.addEventListener('DOMContentLoaded', () => {
         supplierModal.addEventListener('click', (event) => { if (event.target === supplierModal) closeSupplierModal(); });
     }
 
+    const loanButtons = document.querySelectorAll('.loan-view-button');
+    if (loanButtons.length) {
+        document.body.insertAdjacentHTML('beforeend', '<div class="supplier-products-modal" data-loan-modal hidden><div class="supplier-products-dialog"><button type="button" class="supplier-modal-close" data-close-loan-modal aria-label="Close">x</button><span class="modal-eyebrow">Staff Loan</span><h2 data-loan-title>Loan Details</h2><div class="supplier-modal-details" data-loan-details></div></div></div>');
+        const loanModal = document.querySelector('[data-loan-modal]');
+        const loanDetails = loanModal.querySelector('[data-loan-details]');
+        const closeLoanModal = () => { loanModal.hidden = true; };
+        loanButtons.forEach((button) => button.addEventListener('click', () => {
+            loanModal.querySelector('[data-loan-title]').textContent = button.dataset.loanEmployee || 'Loan Details';
+            loanDetails.innerHTML = '<div><span>Employee ID</span><strong>' + button.dataset.loanCode + '</strong></div><div><span>Loan Date</span><strong>' + button.dataset.loanDate + '</strong></div><div><span>Amount</span><strong>' + button.dataset.loanAmount + '</strong></div><div><span>Balance</span><strong>' + button.dataset.loanBalance + '</strong></div><div><span>Status</span><strong>' + button.dataset.loanStatus + '</strong></div><div><span>Reason</span><strong>' + button.dataset.loanReason + '</strong></div>';
+            loanModal.hidden = false;
+        }));
+        loanModal.querySelector('[data-close-loan-modal]')?.addEventListener('click', closeLoanModal);
+        loanModal.addEventListener('click', (event) => { if (event.target === loanModal) closeLoanModal(); });
+    }
+
     const vehicleActionData = document.querySelector('#vehicle-action-data');
     const vehicleRows = document.querySelectorAll('.vehicle-table tbody tr');
     if (vehicleActionData && vehicleRows.length) {
