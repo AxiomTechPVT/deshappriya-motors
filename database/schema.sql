@@ -175,6 +175,20 @@ CREATE TABLE IF NOT EXISTS employee_attendance (
     CONSTRAINT employee_attendance_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS bays (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    bay_name VARCHAR(80) NOT NULL,
+    status ENUM('active','inactive','maintenance') NOT NULL DEFAULT 'active',
+    assigned_employee_id BIGINT UNSIGNED NULL,
+    notes TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY bays_name_unique (bay_name),
+    KEY bays_status_index (status),
+    CONSTRAINT bays_employee_fk FOREIGN KEY (assigned_employee_id) REFERENCES employees (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO `users` (`name`, `email`, `role`, `password`)
 VALUES
 ('Garage Administrator', 'admin@deshappriyamotors.test', 'administrator', '$2y$10$KKscRXRVulvlZBPWhNV/QukjXYSIk8VdwHTpN9Nx35TgA2pjmJlYG'),
