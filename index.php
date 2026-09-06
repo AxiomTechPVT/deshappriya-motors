@@ -101,6 +101,13 @@ if ($page === 'admin') {
         handle_appointment_request($section);
         exit;
     }
+    if (str_starts_with($section, 'estimates')) {
+        require_once __DIR__ . '/includes/customers.php';
+        require_once __DIR__ . '/includes/vehicles.php';
+        require_once __DIR__ . '/includes/estimates.php';
+        handle_estimate_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'employees')) {
         require_once __DIR__ . '/includes/employees.php';
         handle_employee_request($section);

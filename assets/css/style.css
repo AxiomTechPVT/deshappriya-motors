@@ -301,6 +301,62 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .appointment-modal { width:min(100%,760px); }
 @media (max-width:1100px) { .appointment-filter-bar { grid-template-columns:repeat(3,minmax(150px,1fr)); } .appointment-filter-bar label:first-child { grid-column:1/-1; } }
 @media (max-width:575px) { .appointment-filter-bar { grid-template-columns:1fr; } .appointment-filter-bar label:first-child { grid-column:auto; } .appointment-filter-actions .btn { flex:1; } }
+.estimate-heading { margin-bottom:0; }
+.estimate-summary { margin-top:16px; }
+.estimate-stat-blue { border-top:4px solid #155eef; }
+.estimate-stat-orange { border-top:4px solid #f79009; }
+.estimate-stat-green { border-top:4px solid #12b76a; }
+.estimate-stat-red { border-top:4px solid #f04438; }
+.estimate-filters,.estimate-list { margin-top:16px; }
+.estimate-filters { padding:18px 20px; }
+.estimate-filter-bar { display:grid; grid-template-columns:minmax(230px,1.7fr) repeat(4,minmax(130px,1fr)) auto; align-items:end; gap:12px; }
+.estimate-filter-bar label { color:#101828; font-size:10px; font-weight:700; }
+.estimate-filter-bar .form-control,.estimate-filter-bar .form-select { height:36px; margin-top:7px; border-color:#d0d5dd; font-size:11px; }
+.estimate-filter-actions { display:flex; gap:7px; }
+.estimate-filter-actions .btn { height:36px; font-size:11px; white-space:nowrap; }
+.estimate-list { padding:0 14px 16px; }
+.estimate-table { min-width:1100px; }
+.estimate-table th { color:#101828; font-size:10px; padding:11px 8px; }
+.estimate-table td { color:#344054; font-size:11px; padding:12px 8px; }
+.estimate-table td strong { color:#101828; }
+.estimate-number { color:#dc3545 !important; }
+.estimate-status { display:inline-block; padding:4px 8px; border-radius:5px; background:#fff4df; color:#b54708; font-size:10px; font-weight:700; }
+.estimate-status-accepted { background:#ecfdf3; color:#087443; }
+.estimate-status-rejected,.estimate-status-expired { background:#fef3f2; color:#b42318; }
+.estimate-form-backdrop { justify-content:end; align-items:stretch; padding:0; }
+.estimate-side-panel { width:min(100%,520px); height:100%; overflow:auto; background:#fff; box-shadow:-12px 0 35px rgba(16,24,40,.18); }
+.estimate-panel-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:20px 22px 16px; border-bottom:1px solid #eaecf0; }
+.estimate-panel-header h2 { margin:0 0 4px; color:#101828; font-size:19px; }
+.estimate-panel-header span { color:var(--muted); font-size:11px; }
+.estimate-panel-header a { color:#101828; font-size:25px; line-height:1; text-decoration:none; }
+.estimate-panel-body { padding:0 22px 20px; }
+.estimate-form-section { padding:18px 0; border-bottom:1px solid #eaecf0; }
+.estimate-form-section h3 { margin:0 0 14px; color:#101828; font-size:13px; }
+.estimate-form-section .form-label { display:block; color:#101828; font-size:10px; font-weight:700; margin-bottom:6px; }
+.estimate-form-section .form-control,.estimate-form-section .form-select { min-height:35px; border-color:#d0d5dd; font-size:11px; }
+.estimate-items-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.estimate-items-heading .btn { font-size:10px; }
+.estimate-item-row { display:grid; grid-template-columns:minmax(130px,1.7fr) 58px 86px 64px 25px; gap:6px; align-items:center; margin-bottom:7px; }
+.estimate-item-row .form-control { min-width:0; height:34px; padding:6px 7px; }
+.estimate-line-amount { overflow:hidden; color:#101828; font-size:10px; font-weight:700; text-align:right; }
+.estimate-remove-item { width:25px; height:28px; border:0; border-radius:5px; background:#fff1f0; color:#d92d20; cursor:pointer; font-size:17px; }
+.estimate-total-box { margin-top:18px; padding:15px; border:1px solid #eaecf0; border-radius:7px; background:#f8fafc; }
+.estimate-total-box > div { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 0; color:#344054; font-size:11px; }
+.estimate-total-box label { display:flex; align-items:center; gap:10px; }
+.estimate-total-box label .form-control { width:110px; height:32px; font-size:11px; }
+.estimate-grand-total { margin-top:5px; padding-top:12px !important; border-top:1px solid #d0d5dd; color:#101828 !important; font-size:15px !important; font-weight:800; }
+.estimate-grand-total strong { color:#dc3545; }
+.estimate-form-footer { display:flex; justify-content:flex-end; gap:9px; padding-top:18px; }
+.estimate-form-footer .btn { min-width:110px; font-size:11px; }
+.estimate-view-modal { width:min(100%,780px); }
+.estimate-view-items { margin-top:20px; padding-top:18px; border-top:1px solid #eaecf0; }
+.estimate-view-items h3 { margin:0 0 10px; color:#101828; font-size:14px; }
+.estimate-view-items .table { font-size:11px; }
+.estimate-view-total { display:grid; grid-template-columns:1fr auto; gap:7px 14px; margin-left:auto; max-width:270px; padding-top:12px; border-top:1px solid #d0d5dd; color:#344054; font-size:11px; }
+.estimate-view-total strong { text-align:right; }
+.estimate-view-total b { color:#101828; font-size:13px; }
+@media (max-width:1100px) { .estimate-filter-bar { grid-template-columns:repeat(3,minmax(145px,1fr)); } .estimate-filter-bar label:first-child { grid-column:1/-1; } }
+@media (max-width:575px) { .estimate-filter-bar { grid-template-columns:1fr; } .estimate-filter-bar label:first-child { grid-column:auto; } .estimate-filter-actions { justify-content:stretch; } .estimate-filter-actions .btn { flex:1; } .estimate-side-panel { width:100%; } .estimate-panel-body { padding-left:15px; padding-right:15px; } .estimate-item-row { grid-template-columns:minmax(105px,1fr) 48px 70px 52px 23px; } }
 @media (max-width:1100px) { .other-income-filter-bar { grid-template-columns:repeat(3,minmax(150px,1fr)); } .other-income-filter-bar label:first-child { grid-column:1/-1; } }
 @media (max-width:575px) { .other-income-filter-bar { grid-template-columns:1fr; } .other-income-filter-bar label:first-child { grid-column:auto; } .other-income-filter-actions .btn { flex:1; } }
 @media (max-width:575px) { .customer-modal-backdrop { padding:12px; } .customer-modal { max-height:calc(100vh - 24px); } .customer-modal-header,.customer-modal-body { padding-left:16px; padding-right:16px; } .modal-detail-grid { grid-template-columns:1fr; } .modal-detail-wide { grid-column:auto; } .modal-vehicle-card { grid-template-columns:1fr 1fr; } .customer-modal-footer { padding-left:16px; padding-right:16px; } }
