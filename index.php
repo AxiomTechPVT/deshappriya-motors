@@ -83,6 +83,11 @@ if ($page === 'admin') {
         handle_supplier_request($section);
         exit;
     }
+    if (str_starts_with($section, 'stock')) {
+        require_once __DIR__ . '/includes/stock.php';
+        handle_stock_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'other-income')) {
         require_once __DIR__ . '/includes/other-income.php';
         handle_other_income_request($section);
@@ -105,6 +110,11 @@ if ($page === 'admin') {
         require_once __DIR__ . '/includes/suppliers.php';
         require_once __DIR__ . '/includes/stock.php';
         handle_stock_request($section);
+    if (str_starts_with($section, 'estimates')) {
+        require_once __DIR__ . '/includes/customers.php';
+        require_once __DIR__ . '/includes/vehicles.php';
+        require_once __DIR__ . '/includes/estimates.php';
+        handle_estimate_request($section);
         exit;
     }
     if (str_starts_with($section, 'employees')) {
