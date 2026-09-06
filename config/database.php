@@ -33,7 +33,9 @@ function database(): PDO
     $pdo = new PDO($dsn, $user, $password, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
+        // MySQL permits repeated named placeholders when emulated prepares are enabled.
+        // Existing module queries use this pattern for repeated purchase totals.
+        PDO::ATTR_EMULATE_PREPARES => true,
     ]);
 
     return $pdo;

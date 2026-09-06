@@ -263,3 +263,90 @@ CREATE TABLE IF NOT EXISTS appointments (
     CONSTRAINT appointments_customer_fk FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE,
     CONSTRAINT appointments_vehicle_fk FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    part_code VARCHAR(60) NOT NULL,
+    part_name VARCHAR(190) NOT NULL,
+    category VARCHAR(100) NULL,
+    brand VARCHAR(100) NULL,
+    unit VARCHAR(30) NOT NULL DEFAULT 'PCS',
+    buying_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    selling_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    stock_qty DECIMAL(12,2) NOT NULL DEFAULT 0,
+    reorder_level DECIMAL(12,2) NOT NULL DEFAULT 10,
+    supplier_id BIGINT UNSIGNED NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    notes TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY stock_items_code_unique (part_code), KEY stock_items_category_index (category), KEY stock_items_brand_index (brand), KEY stock_items_qty_index (stock_qty), CONSTRAINT stock_items_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_purchases (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, purchase_no VARCHAR(30) NOT NULL, supplier_id BIGINT UNSIGNED NULL, purchase_date DATE NOT NULL, invoice_no VARCHAR(80) NULL, payment_status ENUM('paid','due','partial') NOT NULL DEFAULT 'paid', paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0, balance_amount DECIMAL(12,2) NOT NULL DEFAULT 0, total_amount DECIMAL(12,2) NOT NULL DEFAULT 0, status ENUM('received','cancelled') NOT NULL DEFAULT 'received', notes TEXT NULL, created_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id), UNIQUE KEY stock_purchases_no_unique (purchase_no), KEY stock_purchases_date_index (purchase_date), KEY stock_purchases_supplier_index (supplier_id), CONSTRAINT stock_purchases_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE SET NULL, CONSTRAINT stock_purchases_user_fk FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_purchase_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, purchase_id BIGINT UNSIGNED NOT NULL, stock_item_id BIGINT UNSIGNED NOT NULL, quantity DECIMAL(12,2) NOT NULL DEFAULT 0, unit_cost DECIMAL(12,2) NOT NULL DEFAULT 0, amount DECIMAL(12,2) NOT NULL DEFAULT 0, buying_price DECIMAL(12,2) NOT NULL DEFAULT 0, selling_price DECIMAL(12,2) NULL, line_total DECIMAL(12,2) NOT NULL DEFAULT 0, PRIMARY KEY (id), KEY stock_purchase_items_purchase_index (purchase_id), KEY stock_purchase_items_stock_index (stock_item_id), CONSTRAINT stock_purchase_items_purchase_fk FOREIGN KEY (purchase_id) REFERENCES stock_purchases (id) ON DELETE CASCADE, CONSTRAINT stock_purchase_items_stock_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_batches (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    stock_item_id BIGINT UNSIGNED NOT NULL,
+    stock_purchase_item_id BIGINT UNSIGNED NULL,
+    quantity_received DECIMAL(12,2) NOT NULL,
+    quantity_remaining DECIMAL(12,2) NOT NULL,
+    buying_price DECIMAL(12,2) NOT NULL,
+    selling_price_at_purchase DECIMAL(12,2) NULL,
+    purchase_date DATE NOT NULL,
+    supplier_id BIGINT UNSIGNED NULL,
+    batch_reference VARCHAR(80) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY stock_batches_item_index (stock_item_id),
+    KEY stock_batches_purchase_item_index (stock_purchase_item_id),
+    KEY stock_batches_date_index (purchase_date),
+    KEY stock_batches_reference_index (batch_reference),
+    CONSTRAINT stock_batches_item_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items (id) ON DELETE CASCADE,
+    CONSTRAINT stock_batches_purchase_item_fk FOREIGN KEY (stock_purchase_item_id) REFERENCES stock_purchase_items (id) ON DELETE SET NULL,
+    CONSTRAINT stock_batches_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_movements (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    stock_item_id BIGINT UNSIGNED NOT NULL,
+    movement_type ENUM('opening_stock','restock','job_usage','sale','adjustment_in','adjustment_out','return') NOT NULL,
+    quantity DECIMAL(12,2) NOT NULL,
+    quantity_before DECIMAL(12,2) NOT NULL DEFAULT 0,
+    quantity_after DECIMAL(12,2) NOT NULL DEFAULT 0,
+    unit_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+    reference_type VARCHAR(40) NULL,
+    reference_id BIGINT UNSIGNED NULL,
+    notes TEXT NULL,
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY stock_movements_item_index (stock_item_id),
+    KEY stock_movements_type_index (movement_type),
+    KEY stock_movements_reference_index (reference_type, reference_id),
+    CONSTRAINT stock_movements_item_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items (id) ON DELETE CASCADE,
+    CONSTRAINT stock_movements_user_fk FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_batch_consumptions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    stock_item_id BIGINT UNSIGNED NOT NULL,
+    stock_batch_id BIGINT UNSIGNED NOT NULL,
+    reference_type VARCHAR(40) NOT NULL,
+    reference_id BIGINT UNSIGNED NULL,
+    quantity DECIMAL(12,2) NOT NULL,
+    unit_cost DECIMAL(12,2) NOT NULL,
+    total_cost DECIMAL(12,2) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY stock_batch_consumptions_item_index (stock_item_id),
+    KEY stock_batch_consumptions_batch_index (stock_batch_id),
+    CONSTRAINT stock_batch_consumptions_item_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items (id) ON DELETE CASCADE,
+    CONSTRAINT stock_batch_consumptions_batch_fk FOREIGN KEY (stock_batch_id) REFERENCES stock_batches (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
