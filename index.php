@@ -88,6 +88,12 @@ if ($page === 'admin') {
         handle_other_income_request($section);
         exit;
     }
+    if (str_starts_with($section, 'bays')) {
+        require_once __DIR__ . '/includes/employees.php';
+        require_once __DIR__ . '/includes/bays.php';
+        handle_bay_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'employees')) {
         require_once __DIR__ . '/includes/employees.php';
         handle_employee_request($section);
