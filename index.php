@@ -78,6 +78,11 @@ if ($page === 'admin') {
         handle_vehicle_request($section);
         exit;
     }
+    if (str_starts_with($section, 'suppliers')) {
+        require_once __DIR__ . '/includes/suppliers.php';
+        handle_supplier_request($section);
+        exit;
+    }
     if ($section === 'settings-password') {
         redirect('index.php?page=password');
     }
