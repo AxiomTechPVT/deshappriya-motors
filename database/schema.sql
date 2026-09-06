@@ -69,6 +69,24 @@ CREATE TABLE IF NOT EXISTS supplier_products (
     CONSTRAINT supplier_products_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS other_income (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    income_date DATE NOT NULL,
+    title VARCHAR(160) NOT NULL,
+    category VARCHAR(100) NULL,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    payment_method ENUM('cash','card','bank','other') NOT NULL DEFAULT 'cash',
+    reference_no VARCHAR(80) NULL,
+    notes TEXT NULL,
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY other_income_date_index (income_date),
+    KEY other_income_category_index (category),
+    CONSTRAINT other_income_user_fk FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS employees (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     employee_code VARCHAR(20) NOT NULL,
