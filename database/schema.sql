@@ -277,6 +277,7 @@ CREATE TABLE IF NOT EXISTS estimates (
     service_type VARCHAR(190) NOT NULL,
     notes TEXT NULL,
     subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    service_charge DECIMAL(12,2) NOT NULL DEFAULT 0,
     discount DECIMAL(12,2) NOT NULL DEFAULT 0,
     vat_rate DECIMAL(5,2) NOT NULL DEFAULT 18,
     vat_amount DECIMAL(12,2) NOT NULL DEFAULT 0,

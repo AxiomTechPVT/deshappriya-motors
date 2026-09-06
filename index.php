@@ -83,6 +83,11 @@ if ($page === 'admin') {
         handle_supplier_request($section);
         exit;
     }
+    if (str_starts_with($section, 'stock')) {
+        require_once __DIR__ . '/includes/stock.php';
+        handle_stock_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'other-income')) {
         require_once __DIR__ . '/includes/other-income.php';
         handle_other_income_request($section);
