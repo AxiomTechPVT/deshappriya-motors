@@ -60,6 +60,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const employeeForm = document.querySelector('.employee-form-panel form');
+    if (employeeForm && !employeeForm.querySelector('[name="paid_leave_days"]')) {
+        const salaryField = employeeForm.querySelector('[name="salary"]');
+        if (salaryField) {
+            const leaveField = document.createElement('div');
+            leaveField.className = 'col-md-6';
+            leaveField.innerHTML = '<label class="form-label">Paid Leave Days / Month</label><input class="form-control" name="paid_leave_days" type="number" min="0" step="0.5" value="0"><small class="text-muted">These leave days will not be deducted from salary.</small>';
+            salaryField.closest('.col-md-6')?.parentNode.insertBefore(leaveField, salaryField.closest('.col-md-6').nextSibling);
+        }
+    }
+
+    const salaryEmployee = document.querySelector('#salary-employee');
+    const salaryOutstanding = document.querySelector('#salary-outstanding-summary');
+    const salaryNoPaySummary = document.querySelector('#salary-no-pay-summary');
+    const salaryBasic = document.querySelector('#salary-basic');
+    const advanceWrap = document.querySelector('#salary-advance-deduction-wrap');
+    const loanWrap = document.querySelector('#salary-loan-deduction-wrap');
+    const advanceInput = document.querySelector('#salary-advance-deduction');
+    const loanInput = document.querySelector('#salary-loan-deduction');
+    if (salaryEmployee && salaryOutstanding) {
+        const updateSalaryOutstanding = () => {
+            const option = salaryEmployee.options[salaryEmployee.selectedIndex];
+            const advance = Number(option?.dataset.advance || 0);
+            const loan = Number(option?.dataset.loan || 0);
+            const unpaidDays = Number(option?.dataset.unpaidDays || 0);
+            const attendanceDeduction = Number(option?.dataset.attendanceDeduction || 0);
+            salaryOutstanding.innerHTML = '<div><span>Outstanding Advance</span><strong>' + advance.toFixed(2) + '</strong></div><div><span>Outstanding Loan</span><strong>' + loan.toFixed(2) + '</strong></div>';
+            if (salaryNoPaySummary) salaryNoPaySummary.innerHTML = '<div><span>No-pay Leave Days</span><strong>' + unpaidDays.toFixed(2) + '</strong></div><div><span>No-pay Leave Deduction</span><strong>' + attendanceDeduction.toFixed(2) + '</strong></div>';
+            if (salaryBasic && option?.dataset.basic !== undefined) salaryBasic.value = Number(option.dataset.basic || 0).toFixed(2);
+            if (advanceWrap) advanceWrap.hidden = advance <= 0;
+            if (loanWrap) loanWrap.hidden = loan <= 0;
+            if (advanceInput && advance <= 0) advanceInput.value = '0';
+            if (loanInput && loan <= 0) loanInput.value = '0';
+            if (advanceInput && advance > 0 && Number(advanceInput.value) > advance) advanceInput.value = advance.toFixed(2);
+            if (loanInput && loan > 0 && Number(loanInput.value) > loan) loanInput.value = loan.toFixed(2);
+        };
+        salaryEmployee.addEventListener('change', updateSalaryOutstanding);
+        updateSalaryOutstanding();
+    }
+
     let supplierModal = document.querySelector('[data-supplier-modal]');
     const supplierButtons = document.querySelectorAll('.supplier-view-products');
     if (!supplierModal && supplierButtons.length) {
