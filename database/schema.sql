@@ -52,6 +52,85 @@ CREATE TABLE IF NOT EXISTS supplier_products (
     CONSTRAINT supplier_products_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS employees (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    employee_code VARCHAR(20) NOT NULL,
+    name VARCHAR(160) NOT NULL,
+    phone VARCHAR(40) NOT NULL,
+    email VARCHAR(190) NULL,
+    role_position VARCHAR(120) NOT NULL,
+    join_date DATE NOT NULL,
+    salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    address TEXT NULL,
+    notes TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY employees_code_unique (employee_code),
+    KEY employees_status_index (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_salaries (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT UNSIGNED NOT NULL,
+    salary_month DATE NOT NULL,
+    basic_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+    allowances DECIMAL(12,2) NOT NULL DEFAULT 0,
+    deductions DECIMAL(12,2) NOT NULL DEFAULT 0,
+    net_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+    status ENUM('pending','paid') NOT NULL DEFAULT 'pending',
+    paid_at DATETIME NULL,
+    notes TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY employee_salary_month_unique (employee_id, salary_month),
+    CONSTRAINT employee_salaries_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_advances (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT UNSIGNED NOT NULL,
+    advance_date DATE NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(255) NULL,
+    status ENUM('unsettled','settled') NOT NULL DEFAULT 'unsettled',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT employee_advances_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_loans (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT UNSIGNED NOT NULL,
+    loan_date DATE NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    installment DECIMAL(12,2) NOT NULL DEFAULT 0,
+    balance DECIMAL(12,2) NOT NULL DEFAULT 0,
+    reason VARCHAR(255) NULL,
+    status ENUM('active','settled') NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT employee_loans_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_attendance (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT UNSIGNED NOT NULL,
+    attendance_date DATE NOT NULL,
+    attendance_status ENUM('present','absent','leave','half_day') NOT NULL DEFAULT 'present',
+    check_in TIME NULL,
+    check_out TIME NULL,
+    notes VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY employee_attendance_day_unique (employee_id, attendance_date),
+    KEY employee_attendance_date_index (attendance_date),
+    KEY employee_attendance_status_index (attendance_status),
+    CONSTRAINT employee_attendance_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO `users` (`name`, `email`, `role`, `password`)
 VALUES
 ('Garage Administrator', 'admin@deshappriyamotors.test', 'administrator', '$2y$10$KKscRXRVulvlZBPWhNV/QukjXYSIk8VdwHTpN9Nx35TgA2pjmJlYG'),
