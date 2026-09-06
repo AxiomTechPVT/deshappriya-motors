@@ -349,46 +349,4 @@ CREATE TABLE IF NOT EXISTS stock_batch_consumptions (
     KEY stock_batch_consumptions_batch_index (stock_batch_id),
     CONSTRAINT stock_batch_consumptions_item_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items (id) ON DELETE CASCADE,
     CONSTRAINT stock_batch_consumptions_batch_fk FOREIGN KEY (stock_batch_id) REFERENCES stock_batches (id) ON DELETE CASCADE
-CREATE TABLE IF NOT EXISTS estimates (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    estimate_no VARCHAR(30) NOT NULL,
-    customer_id BIGINT UNSIGNED NOT NULL,
-    vehicle_id BIGINT UNSIGNED NULL,
-    mileage DECIMAL(12,2) NULL,
-    engine_number VARCHAR(100) NULL,
-    chassis_number VARCHAR(100) NULL,
-    estimate_date DATE NOT NULL,
-    valid_until DATE NOT NULL,
-    service_type VARCHAR(190) NOT NULL,
-    notes TEXT NULL,
-    subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
-    service_charge DECIMAL(12,2) NOT NULL DEFAULT 0,
-    discount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 18,
-    vat_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    status ENUM('pending','accepted','rejected','expired') NOT NULL DEFAULT 'pending',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY estimates_no_unique (estimate_no),
-    KEY estimates_customer_index (customer_id),
-    KEY estimates_vehicle_index (vehicle_id),
-    KEY estimates_date_index (estimate_date),
-    KEY estimates_status_index (status),
-    CONSTRAINT estimates_customer_fk FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE,
-    CONSTRAINT estimates_vehicle_fk FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS estimate_items (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    estimate_id BIGINT UNSIGNED NOT NULL,
-    item_name VARCHAR(190) NOT NULL,
-    quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
-    unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,
-    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    KEY estimate_items_estimate_index (estimate_id),
-    CONSTRAINT estimate_items_estimate_fk FOREIGN KEY (estimate_id) REFERENCES estimates (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
