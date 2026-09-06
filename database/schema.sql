@@ -1,6 +1,23 @@
 CREATE DATABASE IF NOT EXISTS `deshappriya_motors` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `deshappriya_motors`;
 
+CREATE TABLE IF NOT EXISTS `receipt_settings` (
+    `id` TINYINT UNSIGNED NOT NULL,
+    `garage_name` VARCHAR(160) NOT NULL,
+    `tagline` VARCHAR(190) NULL,
+    `contact_number` VARCHAR(40) NULL,
+    `email` VARCHAR(190) NULL,
+    `address` TEXT NULL,
+    `receipt_header` TEXT NULL,
+    `receipt_footer` TEXT NULL,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `receipt_settings` (`id`, `garage_name`, `tagline`, `contact_number`, `email`, `address`, `receipt_footer`)
+VALUES (1, 'Deshappriya Motors', 'Garage Management System', '077 345 6789', 'info@deshappriyamotors.lk', 'No. 123, Main Street, Kurunegala, Sri Lanka', 'Thank you for your business.')
+ON DUPLICATE KEY UPDATE `id` = `id`;
+
 CREATE TABLE IF NOT EXISTS `users` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(120) NOT NULL,
@@ -61,6 +78,7 @@ CREATE TABLE IF NOT EXISTS employees (
     role_position VARCHAR(120) NOT NULL,
     join_date DATE NOT NULL,
     salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+    paid_leave_days DECIMAL(5,2) NOT NULL DEFAULT 0,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
     address TEXT NULL,
     notes TEXT NULL,
@@ -78,13 +96,20 @@ CREATE TABLE IF NOT EXISTS employee_salaries (
     basic_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
     allowances DECIMAL(12,2) NOT NULL DEFAULT 0,
     deductions DECIMAL(12,2) NOT NULL DEFAULT 0,
+    advance_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
+    loan_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
+    unpaid_leave_days DECIMAL(8,2) NOT NULL DEFAULT 0,
+    attendance_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
     net_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+    amount_paid DECIMAL(12,2) NOT NULL DEFAULT 0,
+    receipt_no VARCHAR(40) NULL,
     status ENUM('pending','paid') NOT NULL DEFAULT 'pending',
     paid_at DATETIME NULL,
     notes TEXT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY employee_salary_month_unique (employee_id, salary_month),
+    UNIQUE KEY employee_salary_receipt_unique (receipt_no),
     CONSTRAINT employee_salaries_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -93,6 +118,7 @@ CREATE TABLE IF NOT EXISTS employee_advances (
     employee_id BIGINT UNSIGNED NOT NULL,
     advance_date DATE NOT NULL,
     amount DECIMAL(12,2) NOT NULL,
+    balance DECIMAL(12,2) NOT NULL DEFAULT 0,
     reason VARCHAR(255) NULL,
     status ENUM('unsettled','settled') NOT NULL DEFAULT 'unsettled',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

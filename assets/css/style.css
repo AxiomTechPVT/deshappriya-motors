@@ -82,6 +82,46 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .attendance-leave { color:#b54708; background:#fffaeb; }
 .attendance-half_day { color:#175cd3; background:#eff8ff; }
 .attendance-mark-hidden { display:none; }
+.salary-outstanding-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:14px; border:1px solid #fedf89; border-radius:8px; background:#fffaeb; }
+.salary-outstanding-summary span,.salary-outstanding-summary strong { display:block; }
+.salary-outstanding-summary span { color:#667085; font-size:10px; }
+.salary-outstanding-summary strong { margin-top:4px; color:#b54708; font-size:14px; }
+.salary-receipt-card { border:1px solid #eaecf0; border-radius:8px; padding:16px; }
+.salary-receipt-row,.salary-receipt-total { display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #f2f4f7; font-size:11px; }
+.salary-receipt-row span { color:#667085; }
+.salary-receipt-total { margin-top:6px; border:0; color:#155eef; font-size:15px; font-weight:800; }
+.salary-receipt-brand { text-align:center; padding-bottom:12px; margin-bottom:8px; border-bottom:1px dashed #98a2b3; }
+.salary-receipt-brand strong,.salary-receipt-brand span { display:block; }
+.salary-receipt-brand strong { font-size:16px; text-transform:uppercase; }
+.salary-receipt-brand span { margin-top:3px; color:#667085; font-size:10px; }
+.salary-receipt-note { margin:10px 0; color:#344054; font-size:10px; text-align:center; white-space:normal; }
+.salary-receipt-footer { padding-top:10px; border-top:1px dashed #98a2b3; }
+.salary-print-card { color:#172b4d; font-family:Arial,sans-serif; }
+.salary-print-brand { padding-bottom:10px; text-align:center; border-bottom:1px solid #172b4d; }
+.salary-print-brand strong,.salary-print-brand span { display:block; }
+.salary-print-brand strong { color:#092b52; font-size:18px; letter-spacing:.2px; text-transform:uppercase; }
+.salary-print-brand span { margin-top:3px; color:#475467; font-size:10px; }
+.salary-print-title { padding:10px 0 7px; text-align:center; }
+.salary-print-title h3 { margin:0; color:#092b52; font-size:16px; letter-spacing:.8px; }
+.salary-print-title span { color:#667085; font-size:10px; }
+.salary-print-meta { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; padding:8px 0; border-top:1px solid #d0d5dd; border-bottom:1px solid #d0d5dd; }
+.salary-print-meta div { display:flex; justify-content:space-between; gap:7px; padding:4px 0; font-size:10px; }
+.salary-print-meta span,.salary-print-line span { color:#475467; }
+.salary-print-meta strong { text-align:right; color:#101828; }
+.salary-print-section { margin-top:10px; border:1px solid #d0d5dd; border-radius:4px; overflow:hidden; }
+.salary-print-section h4 { margin:0; padding:6px 8px; color:#fff; background:#092b52; font-size:10px; }
+.salary-print-line { display:flex; justify-content:space-between; gap:10px; padding:6px 8px; border-bottom:1px solid #eaecf0; font-size:10px; }
+.salary-print-line:last-child { border-bottom:0; }
+.salary-print-line strong { color:#101828; text-align:right; }
+.salary-print-total,.salary-print-grand-total { display:flex; justify-content:space-between; gap:10px; padding:8px; font-size:11px; font-weight:700; }
+.salary-print-total { border-top:1px solid #98a2b3; }
+.salary-print-grand-total { color:#155eef; border-top:2px solid #092b52; font-size:15px; }
+.salary-print-note,.salary-print-footer,.salary-print-signature { padding:8px 0; color:#475467; font-size:10px; text-align:center; }
+.salary-print-footer { margin-top:10px; border-top:1px dashed #98a2b3; }
+.salary-print-signature { color:#092b52; font-style:italic; }
+.action-disabled { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; color:#98a2b3; }
+.salary-filter-panel { margin-bottom:16px; }
+@media print { @page { size:88mm auto; margin:0; } html,body { width:88mm; min-width:88mm; margin:0; background:#fff; } body * { visibility:hidden !important; } .customer-modal-backdrop, .customer-modal-backdrop * { visibility:visible !important; } .customer-modal-backdrop { position:absolute !important; inset:0; display:block; background:#fff; padding:0; } .salary-receipt-modal { width:88mm; max-width:88mm; max-height:none; min-height:0; margin:0; box-shadow:none; border:0; border-radius:0; } .salary-receipt-modal .customer-modal-header,.salary-receipt-modal .customer-modal-footer { display:none; } .salary-receipt-modal .customer-modal-body { padding:5mm; } .salary-receipt-card { border:0; padding:0; } }
 .customer-table-footer { padding:12px 6px 0; border-top:1px solid #f2f4f7; font-size:10px; }
 .customer-pagination-wrap { display:flex; align-items:center; gap:24px; }
 .customer-pagination-wrap .pagination .page-link { min-width:30px; text-align:center; color:#344054; border-color:#d0d5dd; font-size:11px; }
