@@ -7,9 +7,15 @@
     <title><?= e($title ?? 'Dashboard') ?> | Deshappriya Motors</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/style.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/style.css') ?>" rel="stylesheet">
+    <?php if (strpos((string) ($section ?? ''), 'jobcards') === 0): ?><link href="assets/css/jobcards.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcards.css') ?>" rel="stylesheet"><?php endif; ?>
+    <?php if (($section ?? '') === 'jobcards-edit'): ?><link href="assets/css/jobcard-edit.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-edit.css') ?>" rel="stylesheet"><?php endif; ?>
+    <?php if (in_array(($section ?? ''), ['jobcards-view', 'jobcards-receipt'], true)): ?><link href="assets/css/jobcard-payment.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-payment.css') ?>" rel="stylesheet"><?php endif; ?>
+    <?php if (($section ?? '') === 'jobcards-view'): ?><link href="assets/css/jobcard-payment-calc.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-payment-calc.css') ?>" rel="stylesheet"><?php endif; ?>
+    <?php if (($section ?? '') === 'jobcards-receipt'): ?><link href="assets/css/thermal-receipt.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/thermal-receipt.css') ?>" rel="stylesheet"><?php endif; ?>
+    <?php if (($section ?? '') === 'jobcards-receipt'): ?><link href="assets/css/receipt-lines.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/receipt-lines.css') ?>" rel="stylesheet"><?php endif; ?>
 </head>
 <body>
-<?php $referenceLayout = $isAdmin && (strpos((string) ($section ?? ''), 'customers') === 0 || strpos((string) ($section ?? ''), 'vehicles') === 0 || strpos((string) ($section ?? ''), 'suppliers') === 0 || strpos((string) ($section ?? ''), 'employees') === 0); ?>
+<?php $referenceLayout = $isAdmin && (strpos((string) ($section ?? ''), 'customers') === 0 || strpos((string) ($section ?? ''), 'vehicles') === 0 || strpos((string) ($section ?? ''), 'suppliers') === 0 || strpos((string) ($section ?? ''), 'employees') === 0 || strpos((string) ($section ?? ''), 'jobcards') === 0); ?>
 <div class="app-shell <?= $referenceLayout ? 'customer-layout' : '' ?> <?= ($section ?? '') === 'vehicles' ? 'vehicle-list-page' : '' ?>">
     <?php require __DIR__ . ($isAdmin ? '/admin-sidebar.php' : '/sidebar.php'); ?>
     <div class="main-area">
