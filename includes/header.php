@@ -13,6 +13,7 @@
     <?php if (($section ?? '') === 'jobcards-view'): ?><link href="assets/css/jobcard-payment-calc.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-payment-calc.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (($section ?? '') === 'jobcards-receipt'): ?><link href="assets/css/thermal-receipt.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/thermal-receipt.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (($section ?? '') === 'jobcards-receipt'): ?><link href="assets/css/receipt-lines.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/receipt-lines.css') ?>" rel="stylesheet"><?php endif; ?>
+    <?php if (strpos((string) ($section ?? ''), 'invoices') === 0): ?><link href="assets/css/invoices.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/invoices.css') ?>" rel="stylesheet"><?php endif; ?>
 </head>
 <body>
 <?php $referenceLayout = $isAdmin && (strpos((string) ($section ?? ''), 'customers') === 0 || strpos((string) ($section ?? ''), 'vehicles') === 0 || strpos((string) ($section ?? ''), 'suppliers') === 0 || strpos((string) ($section ?? ''), 'employees') === 0 || strpos((string) ($section ?? ''), 'jobcards') === 0); ?>
