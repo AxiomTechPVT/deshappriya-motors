@@ -564,6 +564,76 @@ CREATE TABLE IF NOT EXISTS job_card_performance (
     CONSTRAINT job_card_performance_user_fk FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS invoices (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    invoice_no VARCHAR(30) NOT NULL,
+    invoice_type ENUM('job_card','quick') NOT NULL DEFAULT 'quick',
+    job_card_id BIGINT UNSIGNED NULL,
+    customer_id BIGINT UNSIGNED NULL,
+    vehicle_id BIGINT UNSIGNED NULL,
+    invoice_date DATE NOT NULL,
+    subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    special_service_charge DECIMAL(12,2) NOT NULL DEFAULT 0,
+    discount_type ENUM('fixed','percentage') NULL,
+    discount_value DECIMAL(12,2) NOT NULL DEFAULT 0,
+    discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    balance_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    payment_status ENUM('paid','partial','due','cancelled') NOT NULL DEFAULT 'due',
+    payment_method ENUM('cash','card','bank','cheque','other') NULL,
+    notes TEXT NULL,
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY invoices_no_unique (invoice_no), UNIQUE KEY invoices_job_card_unique (job_card_id),
+    KEY invoices_date_index (invoice_date), KEY invoices_customer_index (customer_id), KEY invoices_status_index (payment_status),
+    CONSTRAINT invoices_job_card_fk FOREIGN KEY (job_card_id) REFERENCES job_cards(id) ON DELETE SET NULL,
+    CONSTRAINT invoices_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    CONSTRAINT invoices_vehicle_fk FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
+    CONSTRAINT invoices_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS invoice_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    invoice_id BIGINT UNSIGNED NOT NULL,
+    item_type ENUM('service','stock_part','external_part','custom') NOT NULL DEFAULT 'custom',
+    service_id BIGINT UNSIGNED NULL,
+    stock_item_id BIGINT UNSIGNED NULL,
+    external_part_id BIGINT UNSIGNED NULL,
+    description VARCHAR(190) NOT NULL,
+    quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
+    unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    cost_amount DECIMAL(12,2) NULL,
+    line_total DECIMAL(12,2) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), KEY invoice_items_invoice_index (invoice_id),
+    CONSTRAINT invoice_items_invoice_fk FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+    CONSTRAINT invoice_items_stock_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items(id) ON DELETE SET NULL,
+    CONSTRAINT invoice_items_external_fk FOREIGN KEY (external_part_id) REFERENCES expense_external_parts(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS invoice_payments (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    invoice_id BIGINT UNSIGNED NOT NULL,
+    payment_no VARCHAR(40) NOT NULL,
+    job_card_id BIGINT UNSIGNED NULL,
+    customer_id BIGINT UNSIGNED NULL,
+    payment_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    payment_method ENUM('cash','card','bank','cheque','other') NOT NULL DEFAULT 'cash',
+    amount_received DECIMAL(12,2) NOT NULL DEFAULT 0,
+    amount_applied DECIMAL(12,2) NOT NULL DEFAULT 0,
+    change_given DECIMAL(12,2) NOT NULL DEFAULT 0,
+    payment_reference VARCHAR(100) NULL,
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY invoice_payments_no_unique (payment_no), KEY invoice_payments_invoice_index (invoice_id),
+    CONSTRAINT invoice_payments_invoice_fk FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+    CONSTRAINT invoice_payments_job_fk FOREIGN KEY (job_card_id) REFERENCES job_cards(id) ON DELETE SET NULL,
+    CONSTRAINT invoice_payments_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    CONSTRAINT invoice_payments_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS service_categories (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     category_name VARCHAR(100) NOT NULL,

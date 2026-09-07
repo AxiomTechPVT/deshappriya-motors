@@ -126,9 +126,18 @@ if ($page === 'admin') {
         exit;
     }
     if (str_starts_with($section, 'jobcards')) {
+        require_once __DIR__ . '/includes/suppliers.php';
         require_once __DIR__ . '/includes/stock.php';
         require_once __DIR__ . '/includes/job-cards.php';
         handle_job_card_request($section);
+        exit;
+    }
+    if (str_starts_with($section, 'invoices')) {
+        require_once __DIR__ . '/includes/suppliers.php';
+        require_once __DIR__ . '/includes/stock.php';
+        require_once __DIR__ . '/includes/job-cards.php';
+        require_once __DIR__ . '/includes/invoices.php';
+        handle_invoice_request($section);
         exit;
     }
     if (str_starts_with($section, 'employees')) {
