@@ -351,6 +351,87 @@ CREATE TABLE IF NOT EXISTS stock_batch_consumptions (
     CONSTRAINT stock_batch_consumptions_batch_fk FOREIGN KEY (stock_batch_id) REFERENCES stock_batches (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS expenses (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    expense_no VARCHAR(30) NOT NULL,
+    expense_date DATE NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    expense_type ENUM('general','external_part') NOT NULL DEFAULT 'general',
+    reference_no VARCHAR(100) NULL,
+    description VARCHAR(255) NOT NULL,
+    supplier_id BIGINT UNSIGNED NULL,
+    vendor_supplier_name VARCHAR(160) NULL,
+    job_card_id BIGINT UNSIGNED NULL,
+    vehicle_id BIGINT UNSIGNED NULL,
+    payment_terms ENUM('cash','credit','partial') NOT NULL DEFAULT 'cash',
+    payment_method ENUM('cash','card','bank','cheque','other') NOT NULL DEFAULT 'cash',
+    location VARCHAR(100) NULL,
+    bill_file VARCHAR(255) NULL,
+    attachment_path VARCHAR(255) NULL,
+    subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    discount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    tax_rate DECIMAL(5,2) NOT NULL DEFAULT 0,
+    tax_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    balance_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    payment_date DATE NULL,
+    payment_note TEXT NULL,
+    notes TEXT NULL,
+    status ENUM('draft','pending','paid','partial','due','cancelled') NOT NULL DEFAULT 'pending',
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY expenses_no_unique (expense_no), KEY expenses_date_index (expense_date), KEY expenses_category_index (category), KEY expenses_status_index (status),
+    CONSTRAINT expenses_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE SET NULL,
+    CONSTRAINT expenses_user_fk FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS expense_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    expense_id BIGINT UNSIGNED NOT NULL,
+    item_name VARCHAR(190) NOT NULL,
+    quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
+    unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    PRIMARY KEY (id), KEY expense_items_expense_index (expense_id),
+    CONSTRAINT expense_items_expense_fk FOREIGN KEY (expense_id) REFERENCES expenses (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS expense_categories (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    category_code VARCHAR(30) NOT NULL,
+    category_name VARCHAR(120) NOT NULL,
+    description TEXT NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY expense_categories_code_unique (category_code), UNIQUE KEY expense_categories_name_unique (category_name),
+    CONSTRAINT expense_categories_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS expense_external_parts (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    expense_id BIGINT UNSIGNED NOT NULL,
+    job_card_id BIGINT UNSIGNED NULL,
+    vehicle_id BIGINT UNSIGNED NULL,
+    part_name VARCHAR(190) NOT NULL,
+    part_code VARCHAR(80) NULL,
+    quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
+    unit_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+    selling_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+    supplier_id BIGINT UNSIGNED NULL,
+    vendor_name VARCHAR(160) NULL,
+    invoice_no VARCHAR(100) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), KEY expense_external_parts_expense_index (expense_id),
+    CONSTRAINT expense_external_parts_expense_fk FOREIGN KEY (expense_id) REFERENCES expenses(id) ON DELETE CASCADE,
+    CONSTRAINT expense_external_parts_vehicle_fk FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
+    CONSTRAINT expense_external_parts_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS estimates (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     estimate_no VARCHAR(30) NOT NULL,

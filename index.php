@@ -101,6 +101,12 @@ if ($page === 'admin') {
         handle_other_income_request($section);
         exit;
     }
+    if (str_starts_with($section, 'expenses')) {
+        require_once __DIR__ . '/includes/suppliers.php';
+        require_once __DIR__ . '/includes/expenses.php';
+        handle_expense_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'bays')) {
         require_once __DIR__ . '/includes/employees.php';
         require_once __DIR__ . '/includes/bays.php';

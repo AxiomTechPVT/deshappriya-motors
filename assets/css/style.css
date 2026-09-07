@@ -170,6 +170,59 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .purchase-payment-group { margin-top:16px; }
 @media (max-width:1100px) { .stock-filter-bar { grid-template-columns:repeat(3,minmax(145px,1fr)); } .stock-filter-bar label:first-child { grid-column:1/-1; } .stock-alert-panel { grid-template-columns:1fr 1fr; } .stock-alert-panel > :first-child { grid-column:1/-1; } }
 @media (max-width:575px) { .stock-heading-actions { margin-top:16px; } .stock-filter-bar,.purchase-filter-bar { grid-template-columns:1fr; } .stock-filter-bar label:first-child { grid-column:auto; } .stock-filter-actions { justify-content:stretch; } .stock-filter-actions .btn { flex:1; } .stock-alert-panel { grid-template-columns:1fr; gap:14px; } .stock-alert-panel > :first-child { grid-column:auto; } .stock-side-panel { width:100%; } }
+.expense-heading,.expense-page-title { margin-bottom:16px; }
+.expense-page-title { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.expense-form-actions { display:flex; gap:10px; }
+.expense-summary { margin-top:16px; }
+.expense-card-green { border-top:4px solid #12b76a; }
+.expense-card-blue { border-top:4px solid #155eef; }
+.expense-card-orange { border-top:4px solid #f79009; }
+.expense-card-red { border-top:4px solid #f04438; }
+.expense-filters,.expense-list,.expense-form-card { margin-top:16px; }
+.expense-filters { padding:18px 20px; }
+.expense-filter-bar { display:grid; grid-template-columns:minmax(220px,1.7fr) repeat(3,minmax(140px,1fr)) auto; gap:12px; align-items:end; }
+.expense-filter-bar label { color:#101828; font-size:10px; font-weight:700; }
+.expense-filter-bar .form-control,.expense-filter-bar .form-select { height:36px; margin-top:7px; font-size:11px; }
+.expense-filter-actions { display:flex; gap:7px; }
+.expense-filter-actions .btn { height:36px; font-size:11px; }
+.expense-list { padding:0 14px 16px; }
+.expense-table { min-width:1150px; }
+.expense-table th { color:#101828; font-size:10px; padding:11px 8px; white-space:nowrap; }
+.expense-table td { color:#344054; font-size:11px; padding:12px 8px; white-space:nowrap; }
+.expense-number { color:#dc3545 !important; }
+.expense-status { display:inline-block; padding:4px 8px; border-radius:5px; background:#fffaeb; color:#b54708; font-size:10px; font-weight:700; }
+.expense-status-paid { color:#027a48; background:#ecfdf3; }
+.expense-status-partial { color:#175cd3; background:#eff8ff; }
+.expense-status-due,.expense-status-cancelled { color:#b42318; background:#fef3f2; }
+.expense-form-card { padding:20px; }
+.expense-form-card h2 { margin:0 0 16px; color:#101828; font-size:15px; }
+.expense-form-card .form-label { display:block; color:#101828; font-size:11px; font-weight:700; }
+.expense-form-card .form-control,.expense-form-card .form-select { margin-top:6px; min-height:36px; font-size:11px; }
+.expense-upload-section { margin-top:22px; padding-top:18px; border-top:1px solid #eaecf0; }
+.expense-upload-section h3 { margin:0 0 12px; color:#101828; font-size:13px; }
+.expense-items-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.expense-items-heading h2 { margin:0; }
+.expense-items-table { overflow-x:auto; }
+.expense-item-head,.expense-item-row { display:grid; grid-template-columns:35px minmax(220px,1fr) 85px 145px 130px 35px; gap:9px; align-items:center; min-width:700px; }
+.expense-item-head { padding:10px 8px; color:#475467; background:#f8fafc; font-size:10px; font-weight:700; }
+.expense-item-row { padding:8px; border-bottom:1px solid #eaecf0; color:#344054; font-size:11px; }
+.expense-item-row .form-control { margin:0; }
+.expense-line-total { text-align:right; color:#101828; }
+.expense-remove { border:0; border-radius:5px; color:#d92d20; background:#fff1f0; cursor:pointer; font-size:17px; }
+.expense-bottom-grid { display:grid; grid-template-columns:1fr 390px; gap:28px; margin-top:20px; }
+.expense-total-box { padding:15px; border:1px solid #eaecf0; border-radius:8px; background:#f8fafc; }
+.expense-total-box > div { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0; color:#344054; font-size:11px; }
+.expense-total-box label { display:flex; align-items:center; gap:10px; }
+.expense-total-box label .form-control { width:120px; margin:0; }
+.expense-grand-total { border-top:1px solid #d0d5dd; margin-top:5px; padding-top:13px !important; color:#101828 !important; font-size:16px !important; font-weight:800; }
+.expense-grand-total strong { color:#155eef; font-size:20px; }
+.expense-view-modal { width:min(100%,780px); }
+.expense-view-items { margin-top:20px; padding-top:16px; border-top:1px solid #eaecf0; }
+.expense-view-items h3 { margin:0 0 10px; font-size:14px; }
+.expense-view-total { display:grid; grid-template-columns:1fr auto; gap:7px 14px; max-width:300px; margin-left:auto; padding-top:12px; border-top:1px solid #d0d5dd; font-size:11px; }
+.expense-view-total strong,.expense-view-total b { text-align:right; }
+@media (max-width:900px) { .expense-filter-bar { grid-template-columns:repeat(2,minmax(0,1fr)); } .expense-filter-bar label:first-child { grid-column:1/-1; } .expense-bottom-grid { grid-template-columns:1fr; } }
+@media (max-width:575px) { .expense-page-title { display:block; } .expense-form-actions { margin-top:14px; flex-wrap:wrap; } .expense-form-actions .btn { flex:1; } .expense-filter-bar { grid-template-columns:1fr; } .expense-filter-bar label:first-child { grid-column:auto; } .expense-filter-actions .btn { flex:1; } }
 .salary-print-signature { color:#092b52; font-style:italic; }
 .action-disabled { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; color:#98a2b3; }
 .salary-filter-panel { margin-bottom:16px; }
@@ -439,3 +492,7 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .vehicle-entry-panel .customer-form-actions { margin-top:20px; }
 @media (max-width:991px) { .vehicle-filter-bar { grid-template-columns:repeat(2,minmax(0,1fr)); } .vehicle-filter-bar .form-control { grid-column:1/-1; } }
 @media (max-width:575px) { .vehicle-list-panel,.vehicle-entry-panel { padding:12px 10px; } .vehicle-filter-bar { grid-template-columns:1fr; } .vehicle-filter-bar .form-control { grid-column:auto; } .vehicle-filter-bar .btn,.vehicle-filter-bar a { width:100%; } }
+.expense-type-switch{margin:0 0 16px;padding:14px 16px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fbff;max-width:520px}.expense-type-switch .form-label{display:block;margin:0}.expense-type-switch small{display:block;color:#64748b;margin-top:6px}.external-part-panel[hidden]{display:none}.external-part-panel{border-left:3px solid #ef3340}.external-part-panel h2{margin-bottom:16px}.external-part-panel p{margin:14px 0 0;color:#64748b;font-size:12px}
+.expense-compact-card{padding:18px}.expense-compact-card h2{margin-bottom:14px}.expense-compact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}.expense-compact-grid>.full{grid-column:1/-1}.expense-type-options.compact{display:flex;gap:10px}.expense-type-options.compact label{padding:10px;min-width:0}.expense-payment-options.compact{gap:8px}.expense-payment-options.compact label{padding:8px 12px}.category-add-link{float:right;font-size:11px;font-weight:500}.category-add-link a{color:#1769d1;text-decoration:none}.expense-compact-card small{display:block}.expense-compact-card .partial-payment[style*="none"]{display:none!important}@media(max-width:767px){.expense-compact-grid{grid-template-columns:1fr}.expense-compact-grid>.full{grid-column:auto}.expense-type-options.compact{display:block}.expense-type-options.compact label{display:block;margin-bottom:8px}}
+.category-modal-backdrop{position:fixed;inset:0;z-index:1050;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(8,24,45,.55)}.category-modal-backdrop[hidden]{display:none}.category-modal{width:min(460px,100%);background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(8,24,45,.25);padding:22px}.category-modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}.category-modal-header h2{margin:3px 0 0;font-size:20px}.category-modal-header button{border:0;background:transparent;font-size:26px;color:#64748b;line-height:1;cursor:pointer}.category-modal .form-label{display:block;margin:14px 0;color:#102a56;font-size:12px;font-weight:700}.category-modal .form-control,.category-modal .form-select{margin-top:6px}.category-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #e7edf5}
+.expense-create-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start}.expense-create-layout main,.expense-create-layout aside{min-width:0}.expense-create-layout aside{position:sticky;top:16px}.expense-create-layout .expense-form-card{margin-top:16px}.expense-create-layout .expense-form-card:first-child{margin-top:0}.expense-type-options,.expense-payment-options{display:flex;gap:10px;flex-wrap:wrap}.expense-type-options label{flex:1;min-width:190px;padding:12px;border:1px solid #dbe4f0;border-radius:8px;background:#fff;color:#102a56}.expense-type-options label:has(input:checked){border-color:#1877e8;background:#eef6ff}.expense-type-options small{display:block;color:#64748b;font-size:10px;margin:4px 0 0 18px}.expense-payment-options label{padding:9px 14px;border:1px solid #dbe4f0;border-radius:7px}.external-parts-table{min-width:780px}.external-parts-table input{min-width:90px}.external-total-row{display:flex;justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid #e5eaf1;font-weight:700}.external-total-row strong{color:#1769d1}.expense-summary-panel h2,.quick-category-panel h2,.common-category-panel h2{margin-bottom:14px}.expense-summary-panel #expense-summary>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf1f6;font-size:12px}.expense-summary-panel #expense-summary span{color:#64748b}.expense-summary-panel #expense-summary b{text-align:right;color:#102a56}.quick-category-panel p{color:#64748b;font-size:12px}.category-chip{margin:3px;padding:7px 9px;border:1px solid #cfe0f4;border-radius:6px;background:#fff;color:#1755a5;font-size:11px}.category-chip:hover{background:#eef6ff}.external-only[hidden],.general-only[hidden]{display:none}@media(max-width:991px){.expense-create-layout{grid-template-columns:1fr}.expense-create-layout aside{position:static;display:grid;grid-template-columns:1fr 1fr;gap:16px}.expense-create-layout aside .admin-panel{margin-top:0}}@media(max-width:575px){.expense-create-layout aside{display:block}.expense-create-layout aside .admin-panel{margin-top:16px}.expense-type-options{display:block}.expense-type-options label{display:block;margin-bottom:8px}.expense-page-title>a{margin-top:12px;display:inline-block}}
