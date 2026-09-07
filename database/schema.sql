@@ -476,6 +476,94 @@ CREATE TABLE IF NOT EXISTS estimate_items (
     CONSTRAINT estimate_items_estimate_fk FOREIGN KEY (estimate_id) REFERENCES estimates (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS job_cards (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    job_card_no VARCHAR(30) NOT NULL,
+    customer_id BIGINT UNSIGNED NOT NULL,
+    vehicle_id BIGINT UNSIGNED NULL,
+    bay_name VARCHAR(80) NULL,
+    mechanic_id BIGINT UNSIGNED NULL,
+    complaint TEXT NULL,
+    requested_work TEXT NULL,
+    notes TEXT NULL,
+    expected_delivery_date DATE NULL,
+    priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal',
+    status ENUM('pending','ongoing','completed','cancelled') NOT NULL DEFAULT 'pending',
+    subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    service_charge DECIMAL(12,2) NOT NULL DEFAULT 0,
+    discount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    balance_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    payment_method ENUM('cash','card','bank','other') NULL,
+    created_by BIGINT UNSIGNED NULL,
+    started_at DATETIME NULL,
+    completed_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY job_cards_no_unique (job_card_no),
+    KEY job_cards_customer_index (customer_id), KEY job_cards_vehicle_index (vehicle_id),
+    KEY job_cards_status_index (status), KEY job_cards_date_index (created_at),
+    CONSTRAINT job_cards_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    CONSTRAINT job_cards_vehicle_fk FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
+    CONSTRAINT job_cards_mechanic_fk FOREIGN KEY (mechanic_id) REFERENCES employees(id) ON DELETE SET NULL,
+    CONSTRAINT job_cards_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS job_card_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    job_card_id BIGINT UNSIGNED NOT NULL,
+    item_type ENUM('part','service','manual') NOT NULL DEFAULT 'manual',
+    stock_item_id BIGINT UNSIGNED NULL,
+    service_id BIGINT UNSIGNED NULL,
+    item_name VARCHAR(190) NOT NULL,
+    item_code VARCHAR(80) NULL,
+    quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
+    unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    discount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), KEY job_card_items_card_index (job_card_id),
+    CONSTRAINT job_card_items_card_fk FOREIGN KEY (job_card_id) REFERENCES job_cards(id) ON DELETE CASCADE,
+    CONSTRAINT job_card_items_stock_fk FOREIGN KEY (stock_item_id) REFERENCES stock_items(id) ON DELETE SET NULL,
+    CONSTRAINT job_card_items_service_fk FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS job_card_payments (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    job_card_id BIGINT UNSIGNED NOT NULL,
+    receipt_no VARCHAR(40) NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    amount_received DECIMAL(12,2) NOT NULL DEFAULT 0,
+    change_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    payment_method ENUM('cash','card','bank','other') NOT NULL DEFAULT 'cash',
+    paid_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT UNSIGNED NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY job_card_payments_receipt_unique (receipt_no),
+    KEY job_card_payments_card_index (job_card_id),
+    CONSTRAINT job_card_payments_card_fk FOREIGN KEY (job_card_id) REFERENCES job_cards(id) ON DELETE CASCADE,
+    CONSTRAINT job_card_payments_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS job_card_performance (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    job_card_id BIGINT UNSIGNED NOT NULL,
+    mechanic_id BIGINT UNSIGNED NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME NOT NULL,
+    duration_minutes DECIMAL(10,2) NOT NULL DEFAULT 0,
+    recorded_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY job_card_performance_card_unique (job_card_id),
+    KEY job_card_performance_mechanic_index (mechanic_id),
+    CONSTRAINT job_card_performance_card_fk FOREIGN KEY (job_card_id) REFERENCES job_cards(id) ON DELETE CASCADE,
+    CONSTRAINT job_card_performance_mechanic_fk FOREIGN KEY (mechanic_id) REFERENCES employees(id) ON DELETE SET NULL,
+    CONSTRAINT job_card_performance_user_fk FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS service_categories (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     category_name VARCHAR(100) NOT NULL,

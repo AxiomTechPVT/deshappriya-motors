@@ -125,6 +125,12 @@ if ($page === 'admin') {
         handle_appointment_request($section);
         exit;
     }
+    if (str_starts_with($section, 'jobcards')) {
+        require_once __DIR__ . '/includes/stock.php';
+        require_once __DIR__ . '/includes/job-cards.php';
+        handle_job_card_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'employees')) {
         require_once __DIR__ . '/includes/employees.php';
         handle_employee_request($section);
