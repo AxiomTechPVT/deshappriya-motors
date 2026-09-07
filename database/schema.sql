@@ -475,3 +475,31 @@ CREATE TABLE IF NOT EXISTS estimate_items (
     KEY estimate_items_estimate_index (estimate_id),
     CONSTRAINT estimate_items_estimate_fk FOREIGN KEY (estimate_id) REFERENCES estimates (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS service_categories (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    category_name VARCHAR(100) NOT NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY service_categories_name_unique (category_name),
+    KEY service_categories_status_index (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS services (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    service_code VARCHAR(30) NOT NULL,
+    service_name VARCHAR(190) NOT NULL,
+    service_category_id BIGINT UNSIGNED NULL,
+    description TEXT NULL,
+    price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    duration_minutes INT UNSIGNED NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), UNIQUE KEY services_code_unique (service_code),
+    KEY services_name_index (service_name), KEY services_category_index (service_category_id), KEY services_status_index (status),
+    CONSTRAINT services_category_fk FOREIGN KEY (service_category_id) REFERENCES service_categories(id) ON DELETE SET NULL,
+    CONSTRAINT services_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
