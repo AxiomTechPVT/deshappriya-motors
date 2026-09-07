@@ -107,6 +107,11 @@ if ($page === 'admin') {
         handle_expense_request($section);
         exit;
     }
+    if (str_starts_with($section, 'services')) {
+        require_once __DIR__ . '/includes/services.php';
+        handle_service_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'bays')) {
         require_once __DIR__ . '/includes/employees.php';
         require_once __DIR__ . '/includes/bays.php';
