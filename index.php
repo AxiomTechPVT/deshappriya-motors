@@ -17,15 +17,16 @@ if ($page === 'logout' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($page === 'login') {
     require_guest();
+    ensure_user_access_columns();
     $errors = [];
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
-            $errors[] = 'Enter a valid email address and password.';
+        if ($email === '' || $password === '') {
+            $errors[] = 'Enter your username or email and password.';
         } elseif (!login_user($email, $password)) {
-            $errors[] = 'The email or password is incorrect.';
+            $errors[] = 'The username/email or password is incorrect.';
         } else {
             redirect('index.php?page=dashboard');
         }
@@ -107,6 +108,11 @@ if ($page === 'admin') {
         ensure_job_card_tables();
         require_once __DIR__ . '/includes/reports.php';
         handle_report_request($section);
+        exit;
+    }
+    if ($section === 'users-cashiers') {
+        require_once __DIR__ . '/includes/users.php';
+        handle_user_management_request($section);
         exit;
     }
     if (str_starts_with($section, 'expenses')) {
