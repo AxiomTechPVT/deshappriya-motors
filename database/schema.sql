@@ -604,6 +604,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     job_card_id BIGINT UNSIGNED NULL,
     customer_id BIGINT UNSIGNED NULL,
     vehicle_id BIGINT UNSIGNED NULL,
+    vehicle_display_number VARCHAR(40) NULL,
     invoice_date DATE NOT NULL,
     subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
     special_service_charge DECIMAL(12,2) NOT NULL DEFAULT 0,

@@ -84,6 +84,7 @@ function invoice_ensure_tables(): void
         CONSTRAINT invoice_payments_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
         CONSTRAINT invoice_payments_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    if (!$pdo->query("SHOW COLUMNS FROM invoices LIKE 'vehicle_display_number'")->fetch()) $pdo->exec("ALTER TABLE invoices ADD vehicle_display_number VARCHAR(40) NULL AFTER vehicle_id");
     invoice_sync_completed_jobs($pdo);
     $ready = true;
 }
@@ -96,7 +97,7 @@ function invoice_status(float $paid, float $total): string
 
 function invoice_record(int $id): ?array
 {
-    $statement = database()->prepare('SELECT i.*,c.name AS customer_name,c.contact_number,c.email,c.address,v.vehicle_number,v.make,v.model,v.vehicle_type,v.current_mileage,j.job_card_no FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id LEFT JOIN vehicles v ON v.id=i.vehicle_id LEFT JOIN job_cards j ON j.id=i.job_card_id WHERE i.id=:id LIMIT 1');
+    $statement = database()->prepare('SELECT i.*,c.name AS customer_name,c.contact_number,c.email,c.address,COALESCE(v.vehicle_number,i.vehicle_display_number) AS vehicle_number,v.make,v.model,v.vehicle_type,v.current_mileage,j.job_card_no FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id LEFT JOIN vehicles v ON v.id=i.vehicle_id LEFT JOIN job_cards j ON j.id=i.job_card_id WHERE i.id=:id LIMIT 1');
     $statement->execute(['id' => $id]);
     $invoice = $statement->fetch();
     if (!$invoice) return null;
@@ -114,14 +115,14 @@ function invoice_rows(array $filters = []): array
     $where = ['i.payment_status<>"cancelled"'];
     $params = [];
     if (($filters['search'] ?? '') !== '') {
-        $where[] = '(i.invoice_no LIKE :search OR c.name LIKE :search OR v.vehicle_number LIKE :search OR j.job_card_no LIKE :search)';
+        $where[] = '(i.invoice_no LIKE :search OR c.name LIKE :search OR COALESCE(v.vehicle_number,i.vehicle_display_number) LIKE :search OR j.job_card_no LIKE :search)';
         $params['search'] = '%' . $filters['search'] . '%';
     }
     if (in_array($filters['type'] ?? '', ['job_card', 'quick'], true)) { $where[] = 'i.invoice_type=:type'; $params['type'] = $filters['type']; }
     if (in_array($filters['status'] ?? '', ['paid', 'partial', 'due'], true)) { $where[] = 'i.payment_status=:status'; $params['status'] = $filters['status']; }
     if (($filters['date_from'] ?? '') !== '') { $where[] = 'i.invoice_date>=:date_from'; $params['date_from'] = $filters['date_from']; }
     if (($filters['date_to'] ?? '') !== '') { $where[] = 'i.invoice_date<=:date_to'; $params['date_to'] = $filters['date_to']; }
-    $query = 'SELECT i.*,c.name AS customer_name,v.vehicle_number,j.job_card_no FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id LEFT JOIN vehicles v ON v.id=i.vehicle_id LEFT JOIN job_cards j ON j.id=i.job_card_id WHERE ' . implode(' AND ', $where) . ' ORDER BY i.id DESC';
+    $query = 'SELECT i.*,c.name AS customer_name,COALESCE(v.vehicle_number,i.vehicle_display_number) AS vehicle_number,j.job_card_no FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id LEFT JOIN vehicles v ON v.id=i.vehicle_id LEFT JOIN job_cards j ON j.id=i.job_card_id WHERE ' . implode(' AND ', $where) . ' ORDER BY i.id DESC';
     $statement = database()->prepare($query); $statement->execute($params);
     return $statement->fetchAll();
 }
@@ -210,11 +211,12 @@ function invoice_payment_values(array $source, float $total, float $alreadyPaid 
     return ['method'=>$method,'received'=>$received,'applied'=>$applied,'change'=>$method==='cash'?max(0, round($received-$applied, 2)):0,'reference'=>trim((string)($source['payment_reference'] ?? ''))];
 }
 
-function invoice_insert_payment(PDO $pdo, array $invoice, array $payment): void
+function invoice_insert_payment(PDO $pdo, array $invoice, array $payment): string
 {
-    if ($payment['received'] <= 0) return;
+    if ($payment['received'] <= 0) return '';
     $paymentNo = 'PAY-' . date('ymdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
     $pdo->prepare('INSERT INTO invoice_payments (invoice_id,payment_no,job_card_id,customer_id,payment_method,amount_received,amount_applied,change_given,payment_reference,created_by) VALUES (:invoice,:payment,:job,:customer,:method,:received,:applied,:change,:reference,:user)')->execute(['invoice'=>$invoice['id'],'payment'=>$paymentNo,'job'=>$invoice['job_card_id']?:null,'customer'=>$invoice['customer_id']?:null,'method'=>$payment['method'],'received'=>$payment['received'],'applied'=>$payment['applied'],'change'=>$payment['change'],'reference'=>$payment['reference']?:null,'user'=>current_user()['id']??null]);
+    return $paymentNo;
 }
 
 function invoice_create(array $source, string $saveMode, array &$errors): ?int
@@ -230,17 +232,20 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
         if ($existing->fetchColumn()) { $errors[] = 'A final invoice already exists for this job card.'; return null; }
         $customerId = (int)$job['customer_id'];
         $vehicleId = (int)($job['vehicle_id'] ?? 0);
+        $vehicleDisplayNumber = $job['vehicle_number'] ?? null;
         $items = $job['invoice_items'];
         $charge = invoice_money($job['invoice_charge']);
     } else {
         $customerId = max(0, (int)($source['customer_id'] ?? 0));
         $vehicleId = max(0, (int)($source['vehicle_id'] ?? 0));
+        $vehicleDisplayNumber = trim((string)($source['vehicle_number'] ?? ''));
         $items = [];
         if ($customerId > 0 && $vehicleId > 0) {
             $check = database()->prepare('SELECT id FROM vehicles WHERE id=:vehicle AND customer_id=:customer');
             $check->execute(['vehicle' => $vehicleId, 'customer' => $customerId]);
             if (!$check->fetchColumn()) { $errors[] = 'The selected vehicle does not belong to the selected customer.'; return null; }
         }
+        if ($vehicleId > 0) $vehicleDisplayNumber = null;
         $charge = invoice_money($source['special_service_charge'] ?? 0);
         foreach ((array)($source['items'] ?? []) as $row) {
             $itemType = in_array($row['type'] ?? '', ['service','stock_part','custom'], true) ? $row['type'] : 'custom';
@@ -300,8 +305,8 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
         ensure_stock_tables();
         $pdo->beginTransaction();
         $placeholder = 'TMP-' . bin2hex(random_bytes(5));
-        $pdo->prepare('INSERT INTO invoices (invoice_no,invoice_type,job_card_id,customer_id,vehicle_id,invoice_date,subtotal,special_service_charge,discount_type,discount_value,discount_amount,total_amount,paid_amount,balance_amount,payment_status,payment_method,notes,created_by) VALUES (:no,:type,:job,:customer,:vehicle,:date,:subtotal,:charge,:dtype,:dvalue,:damount,:total,0,:total,:status,:method,:notes,:user)')->execute([
-            'no'=>$placeholder, 'type'=>$type, 'job'=>$type === 'job_card' ? $jobId : null, 'customer'=>$customerId ?: null, 'vehicle'=>$vehicleId ?: null,
+        $pdo->prepare('INSERT INTO invoices (invoice_no,invoice_type,job_card_id,customer_id,vehicle_id,vehicle_display_number,invoice_date,subtotal,special_service_charge,discount_type,discount_value,discount_amount,total_amount,paid_amount,balance_amount,payment_status,payment_method,notes,created_by) VALUES (:no,:type,:job,:customer,:vehicle,:vehicle_number,:date,:subtotal,:charge,:dtype,:dvalue,:damount,:total,0,:total,:status,:method,:notes,:user)')->execute([
+            'no'=>$placeholder, 'type'=>$type, 'job'=>$type === 'job_card' ? $jobId : null, 'customer'=>$customerId ?: null, 'vehicle'=>$vehicleId ?: null, 'vehicle_number'=>$vehicleDisplayNumber ?: null,
             'date'=>trim((string)($source['invoice_date'] ?? date('Y-m-d'))), 'subtotal'=>$subtotal, 'charge'=>$charge, 'dtype'=>$discountType,
             'dvalue'=>$discountValue, 'damount'=>$discountAmount, 'total'=>$total, 'status'=>invoice_status(0, $total),
             'method'=>$payment['received'] > 0 ? $payment['method'] : null, 'notes'=>trim((string)($source['notes'] ?? '')) ?: null, 'user'=>current_user()['id'] ?? null,
@@ -316,6 +321,13 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
             if ($item['type'] === 'stock_part') $stockTotals[$item['stock_item_id']] = ($stockTotals[$item['stock_item_id']] ?? 0) + $item['quantity'];
         }
         if ($type === 'quick') {
+            $profit = $charge;
+            foreach ($items as $item) $profit += max(0, ((float)$item['unit_price'] - (float)($item['cost_amount'] ?? 0)) * (float)$item['quantity']);
+            if ($profit > 0) {
+                $pdo->prepare('INSERT INTO other_income (income_date,title,category,amount,payment_method,reference_no,notes,created_by) VALUES (CURDATE(),:title,:category,:amount,"other",:reference,:notes,:user)')->execute(['title'=>'Invoice Profit - '.$invoiceNo,'category'=>'Invoice Profit','amount'=>round($profit,2),'reference'=>$invoiceNo,'notes'=>'Estimated profit recorded from quick invoice '.$invoiceNo.'.','user'=>current_user()['id']??null]);
+            }
+        }
+        if ($type === 'quick') {
             foreach ($stockTotals as $stockId => $quantity) {
                 $stockStatement = $pdo->prepare('SELECT stock_qty FROM stock_items WHERE id=:id FOR UPDATE');
                 $stockStatement->execute(['id'=>$stockId]);
@@ -327,7 +339,11 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
         $invoice = ['id'=>$invoiceId, 'job_card_id'=>$type === 'job_card' ? $jobId : null, 'customer_id'=>$customerId ?: null];
         $paid = $payment['applied']; $balance = max(0, round($total - $paid, 2));
         $pdo->prepare('UPDATE invoices SET paid_amount=:paid,balance_amount=:balance,payment_status=:status WHERE id=:id')->execute(['paid'=>$paid, 'balance'=>$balance, 'status'=>invoice_status($paid, $total), 'id'=>$invoiceId]);
-        invoice_insert_payment($pdo, $invoice, $payment);
+        $paymentNo = invoice_insert_payment($pdo, $invoice, $payment);
+        if ($payment['applied'] > 0) {
+            $incomeMethod = $payment['method'] === 'cheque' ? 'other' : $payment['method'];
+            $pdo->prepare('INSERT INTO other_income (income_date,title,category,amount,payment_method,reference_no,notes,created_by) VALUES (CURDATE(),:title,:category,:amount,:method,:reference,:notes,:user)')->execute(['title'=>'Invoice Payment - '.$invoiceNo,'category'=>'Invoice Payment','amount'=>$payment['applied'],'method'=>$incomeMethod,'reference'=>$paymentNo,'notes'=>'Payment received for invoice '.$invoiceNo.'.','user'=>current_user()['id']??null]);
+        }
         $pdo->commit();
         return $invoiceId;
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); $errors[] = $e instanceof RuntimeException ? $e->getMessage() : 'Invoice could not be saved. Please try again.'; return null; }
@@ -342,7 +358,7 @@ function handle_invoice_request(string $section): void
         if (in_array($section, ['invoices', 'invoices-quick'], true) && $_SERVER['REQUEST_METHOD']==='POST') {
             verify_csrf();
             $invoiceId=invoice_create($_POST,($_POST['save_mode']??'save'),$errors);
-            if($invoiceId){flash('success','Invoice saved successfully.');redirect('index.php?page=admin&section='.($_POST['save_mode']==='print'?'invoices-thermal':'invoices-view').'&id='.$invoiceId);}
+            if($invoiceId){flash('success','Invoice saved successfully.');redirect('index.php?page=admin&section=invoices');}
         }
         $filters=['search'=>trim((string)($_GET['search']??'')),'type'=>$_GET['type']??'','status'=>$_GET['status']??'','date_from'=>trim((string)($_GET['date_from']??'')),'date_to'=>trim((string)($_GET['date_to']??''))];
         $rows=invoice_rows($filters);
@@ -357,6 +373,22 @@ function handle_invoice_request(string $section): void
     }
     if ($section==='invoices-jobcard') { if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$errors=[];$invoiceId=invoice_create($_POST,($_POST['save_mode']??'save'),$errors);if($invoiceId){flash('success','Job card invoice saved successfully.');redirect('index.php?page=admin&section='.($_POST['save_mode']==='print'?'invoices-thermal':'invoices-view').'&id='.$invoiceId);}}$job=invoice_job_data($id);if(!$job){http_response_code(404);exit('Job card not found.');}$existing=database()->prepare('SELECT id FROM invoices WHERE job_card_id=:id');$existing->execute(['id'=>$id]);if($existing->fetchColumn()){redirect('index.php?page=admin&section=invoices');}$title='Create Job Card Invoice';$sectionForHeader='invoices-jobcard';require __DIR__.'/../includes/header.php';require __DIR__.'/../views/invoice-jobcard-form.php';require __DIR__.'/../includes/footer.php';return; }
     if ($section==='invoices-view' || $section==='invoices-thermal') { $invoice=invoice_record($id);if(!$invoice){http_response_code(404);exit('Invoice not found.');}$title='Invoice '.$invoice['invoice_no'];$sectionForHeader='invoices';if($section==='invoices-thermal'){require __DIR__.'/../views/invoice-thermal.php';return;}require __DIR__.'/../includes/header.php';require __DIR__.'/../views/invoice-view.php';require __DIR__.'/../includes/footer.php';return; }
-    if ($section==='invoices-payment' && $_SERVER['REQUEST_METHOD']==='POST') { verify_csrf();$invoice=invoice_record($id);if(!$invoice){http_response_code(404);exit('Invoice not found.');}$errors=[];try{$payment=invoice_payment_values($_POST,(float)$invoice['total_amount'],(float)$invoice['paid_amount']);if($payment['received']<=0)throw new RuntimeException('Enter a payment amount.');$pdo=database();$pdo->beginTransaction();invoice_insert_payment($pdo,$invoice,$payment);$paid=(float)$invoice['paid_amount']+$payment['applied'];$balance=max(0,round((float)$invoice['total_amount']-$paid,2));$pdo->prepare('UPDATE invoices SET paid_amount=:paid,balance_amount=:balance,payment_status=:status,payment_method=:method WHERE id=:id')->execute(['paid'=>$paid,'balance'=>$balance,'status'=>invoice_status($paid,(float)$invoice['total_amount']),'method'=>$payment['method'],'id'=>$id]);$pdo->commit();flash('success','Payment recorded successfully.');redirect('index.php?page=admin&section=invoices-view&id='.$id);}catch(Throwable $e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();flash('error',$e->getMessage());redirect('index.php?page=admin&section=invoices-view&id='.$id);} }
+    if ($section==='invoices-payment' && $_SERVER['REQUEST_METHOD']==='POST') { verify_csrf();$invoice=invoice_record($id);if(!$invoice){http_response_code(404);exit('Invoice not found.');}$errors=[];try{$payment=invoice_payment_values($_POST,(float)$invoice['total_amount'],(float)$invoice['paid_amount']);if($payment['received']<=0)throw new RuntimeException('Enter a payment amount.');$pdo=database();$pdo->beginTransaction();$paymentNo=invoice_insert_payment($pdo,$invoice,$payment);$paymentId=(int)$pdo->lastInsertId();$paid=(float)$invoice['paid_amount']+$payment['applied'];$balance=max(0,round((float)$invoice['total_amount']-$paid,2));$pdo->prepare('UPDATE invoices SET paid_amount=:paid,balance_amount=:balance,payment_status=:status,payment_method=:method WHERE id=:id')->execute(['paid'=>$paid,'balance'=>$balance,'status'=>invoice_status($paid,(float)$invoice['total_amount']),'method'=>$payment['method'],'id'=>$id]);$incomeMethod=$payment['method']==='cheque'?'other':$payment['method'];$pdo->prepare('INSERT INTO other_income (income_date,title,category,amount,payment_method,reference_no,notes,created_by) VALUES (CURDATE(),:title,:category,:amount,:method,:reference,:notes,:user)')->execute(['title'=>'Invoice Payment - '.$invoice['invoice_no'],'category'=>'Invoice Payment','amount'=>$payment['applied'],'method'=>$incomeMethod,'reference'=>$paymentNo,'notes'=>'Payment received for invoice '.$invoice['invoice_no'].'.','user'=>current_user()['id']??null]);$pdo->commit();flash('success','Payment recorded and receipt created.');redirect('index.php?page=admin&section=invoices-receipt&id='.$paymentId);}catch(Throwable $e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();flash('error',$e->getMessage());redirect('index.php?page=admin&section=invoices-view&id='.$id);} }
+    if ($section==='invoices-receipt') {
+        $statement = database()->prepare('SELECT p.*,i.invoice_no,i.invoice_type,i.invoice_date,i.total_amount,i.paid_amount,i.balance_amount,c.name AS customer_name,c.contact_number,COALESCE(v.vehicle_number,i.vehicle_display_number) AS vehicle_number,v.make,v.model FROM invoice_payments p JOIN invoices i ON i.id=p.invoice_id LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN vehicles v ON v.id=p.vehicle_id WHERE p.id=:id LIMIT 1');
+        $statement->execute(['id' => $id]);
+        $payment = $statement->fetch();
+        if (!$payment) { http_response_code(404); exit('Payment receipt not found.'); }
+        $items = database()->prepare('SELECT description,quantity,unit_price,line_total FROM invoice_items WHERE invoice_id=:invoice ORDER BY id');
+        $items->execute(['invoice' => (int)$payment['invoice_id']]);
+        $receiptItems = $items->fetchAll();
+        $receiptSettings = receipt_settings();
+        $title = 'Payment Receipt ' . $payment['payment_no'];
+        $sectionForHeader = $section;
+        require __DIR__ . '/../includes/header.php';
+        require __DIR__ . '/../views/invoice-receipt.php';
+        require __DIR__ . '/../includes/footer.php';
+        return;
+    }
     redirect('index.php?page=admin&section=invoices');
 }
