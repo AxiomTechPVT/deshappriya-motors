@@ -21,13 +21,18 @@ ON DUPLICATE KEY UPDATE `id` = `id`;
 CREATE TABLE IF NOT EXISTS `users` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(120) NOT NULL,
-    `email` VARCHAR(190) NOT NULL,
+    `username` VARCHAR(80) NULL,
+    `email` VARCHAR(190) NULL,
+    `mobile` VARCHAR(40) NULL,
     `role` ENUM('administrator', 'cashier') NOT NULL DEFAULT 'cashier',
+    `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    `last_login_at` DATETIME NULL,
     `password` VARCHAR(255) NOT NULL,
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `users_email_unique` (`email`)
+    UNIQUE KEY `users_email_unique` (`email`),
+    UNIQUE KEY `users_username_unique` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -189,10 +194,10 @@ CREATE TABLE IF NOT EXISTS bays (
     CONSTRAINT bays_employee_fk FOREIGN KEY (assigned_employee_id) REFERENCES employees (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `users` (`name`, `email`, `role`, `password`)
+INSERT INTO `users` (`name`, `username`, `email`, `role`, `status`, `password`)
 VALUES
-('Garage Administrator', 'admin@deshappriyamotors.test', 'administrator', '$2y$10$KKscRXRVulvlZBPWhNV/QukjXYSIk8VdwHTpN9Nx35TgA2pjmJlYG'),
-('Garage Cashier', 'cashier@deshappriyamotors.test', 'cashier', '$2y$10$jdWdnfuqI75ylEBcenK9LOQGnbzV9x/KLwr7UwjJaUxezCrBX9IHq')
+('Garage Administrator', 'administrator', 'admin@deshappriyamotors.test', 'administrator', 'active', '$2y$10$KKscRXRVulvlZBPWhNV/QukjXYSIk8VdwHTpN9Nx35TgA2pjmJlYG'),
+('Garage Cashier', 'cashier', 'cashier@deshappriyamotors.test', 'cashier', 'active', '$2y$10$jdWdnfuqI75ylEBcenK9LOQGnbzV9x/KLwr7UwjJaUxezCrBX9IHq')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `role` = VALUES(`role`);
 
 CREATE TABLE IF NOT EXISTS `customers` (
