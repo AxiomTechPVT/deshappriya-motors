@@ -27,6 +27,9 @@ function job_card_input(?array $source = null): array
     return [
         'customer_id' => max(0, (int)($source['customer_id'] ?? 0)),
         'vehicle_id' => max(0, (int)($source['vehicle_id'] ?? 0)),
+        'primary_service_id' => max(0, (int)($source['primary_service_id'] ?? 0)),
+        'primary_service_name' => trim((string)($source['primary_service_name'] ?? '')),
+        'primary_service_price' => max(0, (float)($source['primary_service_price'] ?? 0)),
         'bay_name' => trim((string)($source['bay_name'] ?? '')),
         'mechanic_id' => max(0, (int)($source['mechanic_id'] ?? 0)),
         'complaint' => trim((string)($source['complaint'] ?? '')),
@@ -66,7 +69,7 @@ function job_card_lookup(): array
         'vehicles' => database()->query("SELECT v.*,c.name AS customer_name FROM vehicles v JOIN customers c ON c.id=v.customer_id WHERE v.status='active' ORDER BY v.vehicle_number")->fetchAll(),
         'employees' => database()->query("SELECT id,name,role_position FROM employees WHERE status='active' ORDER BY name")->fetchAll(),
         'bays' => database()->query("SELECT bay_name FROM bays WHERE status='active' ORDER BY bay_name")->fetchAll(),
-        'services' => database()->query("SELECT id,service_code,service_name,price FROM services WHERE status='active' ORDER BY service_name")->fetchAll(),
+        'services' => database()->query("SELECT id,service_code,service_name,description,price FROM services WHERE status='active' ORDER BY service_name")->fetchAll(),
         'parts' => database()->query("SELECT id,part_code,part_name,stock_qty,selling_price FROM stock_items WHERE status='active' ORDER BY part_name")->fetchAll(),
     ];
 }
@@ -80,7 +83,7 @@ function job_card_rows(string $status, array $filters = []): array
     if (($filters['priority'] ?? '') !== '') { $where[] = 'j.priority=:priority'; $params['priority'] = $filters['priority']; }
     if (($filters['date_from'] ?? '') !== '') { $where[] = 'DATE(j.created_at)>=:date_from'; $params['date_from'] = $filters['date_from']; }
     if (($filters['date_to'] ?? '') !== '') { $where[] = 'DATE(j.created_at)<=:date_to'; $params['date_to'] = $filters['date_to']; }
-    $statement = database()->prepare("SELECT j.*,c.name AS customer_name,c.contact_number,v.vehicle_number,v.make,v.model,v.vehicle_type,v.colour,v.year,v.current_mileage,e.name AS mechanic_name,(SELECT COUNT(*) FROM job_card_items ji WHERE ji.job_card_id=j.id) AS item_count FROM job_cards j JOIN customers c ON c.id=j.customer_id LEFT JOIN vehicles v ON v.id=j.vehicle_id LEFT JOIN employees e ON e.id=j.mechanic_id WHERE ".implode(' AND ',$where)." ORDER BY j.id DESC");
+    $statement = database()->prepare("SELECT j.*,c.name AS customer_name,c.contact_number,v.vehicle_number,v.make,v.model,v.vehicle_type,v.colour,v.year,v.current_mileage,e.name AS mechanic_name,(SELECT COUNT(*) FROM job_card_items ji WHERE ji.job_card_id=j.id AND ji.item_type <> 'service') AS item_count FROM job_cards j JOIN customers c ON c.id=j.customer_id LEFT JOIN vehicles v ON v.id=j.vehicle_id LEFT JOIN employees e ON e.id=j.mechanic_id WHERE ".implode(' AND ',$where)." ORDER BY j.id DESC");
     $statement->execute($params);
     return $statement->fetchAll();
 }
@@ -91,7 +94,23 @@ function job_card_record(int $id): ?array
     $statement->execute(['id' => $id]);
     $record = $statement->fetch();
     if (!$record) return null;
-    $items = database()->prepare('SELECT * FROM job_card_items WHERE job_card_id=:id ORDER BY id');
+    if (in_array($record['status'], ['pending', 'ongoing'], true) && (float)$record['service_charge'] <= 0) {
+        $serviceCandidate = trim((string)($record['requested_work'] ?: $record['complaint'] ?: ''));
+        if ($serviceCandidate !== '') {
+            $serviceLookup = database()->prepare("SELECT price FROM services WHERE status='active' AND LOWER(service_name)=LOWER(:name) LIMIT 1");
+            $serviceLookup->execute(['name' => $serviceCandidate]);
+            $savedServicePrice = $serviceLookup->fetchColumn();
+            if ($savedServicePrice !== false) {
+                $serviceCharge = (float)$savedServicePrice;
+                $record['service_charge'] = $serviceCharge;
+                $record['total_amount'] = (float)$record['subtotal'] + $serviceCharge;
+                $record['balance_amount'] = max(0, $record['total_amount'] - (float)$record['paid_amount']);
+                database()->prepare('UPDATE job_cards SET service_charge=:charge,total_amount=:total,balance_amount=:balance WHERE id=:id')->execute(['charge'=>$serviceCharge,'total'=>$record['total_amount'],'balance'=>$record['balance_amount'],'id'=>$id]);
+                database()->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user) ON DUPLICATE KEY UPDATE amount=VALUES(amount)')->execute(['job'=>$id,'amount'=>$serviceCharge,'user'=>current_user()['id'] ?? null]);
+            }
+        }
+    }
+    $items = database()->prepare('SELECT * FROM job_card_items WHERE job_card_id=:id AND item_type <> "service" ORDER BY id');
     $items->execute(['id' => $id]);
     $record['items'] = $items->fetchAll();
     return $record;
@@ -114,9 +133,80 @@ function add_external_part_expense(array $job, string $name, float $quantity, fl
     }
 }
 
+function reserve_job_card_stock(PDO $pdo, int $stockItemId, float $quantity, int $itemId, array $job): void
+{
+    if ($stockItemId < 1 || $quantity <= 0) return;
+    consume_stock_fifo(
+        $stockItemId,
+        $quantity,
+        'job_card_item',
+        $itemId,
+        isset(current_user()['id']) ? (int)current_user()['id'] : null,
+        'Reserved for job card ' . ($job['job_card_no'] ?? $job['id']),
+        $pdo
+    );
+}
+
+function sync_job_card_stock_reservations(array $job): void
+{
+    if (($job['status'] ?? '') !== 'ongoing') return;
+    $pdo = database();
+    $items = $pdo->prepare("SELECT id,stock_item_id,quantity FROM job_card_items WHERE job_card_id=:job AND item_type='part' AND stock_item_id IS NOT NULL ORDER BY id");
+    $items->execute(['job' => (int)$job['id']]);
+    foreach ($items as $item) {
+        $check = $pdo->prepare("SELECT 1 FROM stock_movements WHERE reference_type='job_card_item' AND reference_id=:item LIMIT 1");
+        $check->execute(['item' => (int)$item['id']]);
+        if ($check->fetchColumn()) continue;
+        try {
+            $pdo->beginTransaction();
+            reserve_job_card_stock($pdo, (int)$item['stock_item_id'], (float)$item['quantity'], (int)$item['id'], $job);
+            $pdo->commit();
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            break;
+        }
+    }
+}
+
+function release_job_card_stock(PDO $pdo, int $itemId, int $stockItemId, float $quantity, array $job): void
+{
+    if ($stockItemId < 1 || $quantity <= 0) return;
+    $movement = $pdo->prepare("SELECT id FROM stock_movements WHERE reference_type='job_card_item' AND reference_id=:item LIMIT 1");
+    $movement->execute(['item' => $itemId]);
+    if (!$movement->fetchColumn()) return;
+
+    $consumptions = $pdo->prepare("SELECT stock_batch_id,quantity FROM stock_batch_consumptions WHERE reference_type='job_card_item' AND reference_id=:item FOR UPDATE");
+    $consumptions->execute(['item' => $itemId]);
+    $restoreBatch = $pdo->prepare('UPDATE stock_batches SET quantity_remaining=quantity_remaining+:quantity WHERE id=:id');
+    foreach ($consumptions as $consumption) {
+        $restoreBatch->execute(['quantity' => (float)$consumption['quantity'], 'id' => (int)$consumption['stock_batch_id']]);
+    }
+
+    $stock = $pdo->prepare('SELECT stock_qty FROM stock_items WHERE id=:id FOR UPDATE');
+    $stock->execute(['id' => $stockItemId]);
+    $before = (float)$stock->fetchColumn();
+    $after = $before + $quantity;
+    $pdo->prepare('UPDATE stock_items SET stock_qty=:quantity WHERE id=:id')->execute(['quantity' => $after, 'id' => $stockItemId]);
+    $cost = $pdo->prepare('SELECT COALESCE(SUM(total_cost),0) / NULLIF(SUM(quantity),0) FROM stock_batch_consumptions WHERE reference_type=\'job_card_item\' AND reference_id=:item');
+    $cost->execute(['item' => $itemId]);
+    $pdo->prepare("INSERT INTO stock_movements (stock_item_id,movement_type,quantity,quantity_before,quantity_after,unit_cost,reference_type,reference_id,notes,created_by) VALUES (:item,'return',:quantity,:before,:after,:cost,'job_card_item',:reference,:notes,:user)")->execute([
+        'item' => $stockItemId,
+        'quantity' => $quantity,
+        'before' => $before,
+        'after' => $after,
+        'cost' => (float)($cost->fetchColumn() ?: 0),
+        'reference' => $itemId,
+        'notes' => 'Released from job card ' . ($job['job_card_no'] ?? $job['id']),
+        'user' => current_user()['id'] ?? null,
+    ]);
+    $pdo->prepare("DELETE FROM stock_batch_consumptions WHERE reference_type='job_card_item' AND reference_id=:item")->execute(['item' => $itemId]);
+    $pdo->prepare("DELETE FROM stock_movements WHERE reference_type='job_card_item' AND reference_id=:item AND movement_type='job_usage'")->execute(['item' => $itemId]);
+}
+
 function handle_job_card_request(string $section): void
 {
     ensure_job_card_tables();
+    ensure_stock_tables();
     $id = max(0, (int)($_GET['id'] ?? $_POST['job_card_id'] ?? 0));
     $errors = [];
     if ($section === 'jobcards-search') {
@@ -126,6 +216,11 @@ function handle_job_card_request(string $section): void
         $statement = database()->prepare("SELECT v.id,v.vehicle_number,v.make,v.model,v.vehicle_type,c.id AS customer_id,c.name AS customer_name,c.contact_number FROM vehicles v JOIN customers c ON c.id=v.customer_id WHERE v.status='active' AND (v.vehicle_number LIKE :query OR c.name LIKE :query OR c.contact_number LIKE :query) ORDER BY v.vehicle_number LIMIT 10");
         $statement->execute(['query' => '%' . $query . '%']);
         echo json_encode($statement->fetchAll());
+        return;
+    }
+    if ($section === 'jobcards-services') {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(database()->query("SELECT id,service_code,service_name,description,price FROM services WHERE status='active' ORDER BY service_name")->fetchAll());
         return;
     }
     if ($section === 'jobcards-start-options') {
@@ -164,7 +259,7 @@ function handle_job_card_request(string $section): void
             redirect('index.php?page=admin&section=jobcards-view&id='.$id);
         }
         $charge = max(0, (float)($_POST['service_charge'] ?? 0));
-        $sum = database()->prepare('SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id'); $sum->execute(['id'=>$id]);
+        $sum = database()->prepare('SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id AND item_type <> "service"'); $sum->execute(['id'=>$id]);
         $partsTotal = (float)$sum->fetchColumn(); $total = $partsTotal + $charge;
         database()->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user) ON DUPLICATE KEY UPDATE amount=VALUES(amount),created_by=VALUES(created_by)')->execute(['job'=>$id,'amount'=>$charge,'user'=>current_user()['id'] ?? null]);
         $updated = database()->prepare('UPDATE job_cards SET service_charge=:charge,subtotal=:subtotal,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id AND status="ongoing"');
@@ -183,6 +278,27 @@ function handle_job_card_request(string $section): void
             redirect('index.php?page=admin&section=jobcards-view&id='.$id);
         }
         flash('success', 'Service charge updated.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+    }
+    if ($section === 'jobcards-delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        verify_csrf();
+        $job = job_card_record($id);
+        if (!$job) {
+            flash('error', 'Job card not found.');
+            redirect('index.php?page=admin&section=jobcards-ongoing');
+        }
+        if (!in_array($job['status'], ['pending', 'ongoing'], true)) {
+            flash('error', 'Only pending or ongoing job cards can be deleted.');
+            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        }
+        $paymentCheck = database()->prepare('SELECT COUNT(*) FROM job_card_payments WHERE job_card_id=:id');
+        $paymentCheck->execute(['id' => $id]);
+        if ((int)$paymentCheck->fetchColumn() > 0) {
+            flash('error', 'This job card cannot be deleted because payments already exist.');
+            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        }
+        database()->prepare('DELETE FROM job_cards WHERE id=:id')->execute(['id' => $id]);
+        flash('success', 'Job card deleted successfully.');
+        redirect('index.php?page=admin&section=jobcards-' . ($job['status'] === 'ongoing' ? 'ongoing' : 'pending'));
     }
     if ($section === 'jobcards-payment' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
@@ -278,6 +394,16 @@ function handle_job_card_request(string $section): void
             if ($status === 'ongoing') { $params['bay_name'] = trim((string)$_POST['bay_name']); $params['mechanic_id'] = (int)$_POST['mechanic_id']; }
             $update = database()->prepare("UPDATE job_cards SET status=:status{$extra} WHERE id=:id");
             $update->execute($params);
+            if ($status === 'ongoing') {
+                $serviceTotal = database()->prepare("SELECT COALESCE(SUM(CASE WHEN item_type <> 'service' THEN amount ELSE 0 END),0) subtotal, COALESCE(SUM(CASE WHEN item_type='service' THEN amount ELSE 0 END),0) service_charge FROM job_card_items WHERE job_card_id=:id");
+                $serviceTotal->execute(['id' => $id]);
+                $totals = $serviceTotal->fetch() ?: ['subtotal' => 0, 'service_charge' => 0];
+                $partsTotal = (float) $totals['subtotal'];
+                $serviceCharge = (float) ($job['service_charge'] ?? 0);
+                $total = $partsTotal + $serviceCharge;
+                database()->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user) ON DUPLICATE KEY UPDATE amount=VALUES(amount),created_by=VALUES(created_by)')->execute(['job' => $id, 'amount' => $serviceCharge, 'user' => current_user()['id'] ?? null]);
+                database()->prepare('UPDATE job_cards SET subtotal=:subtotal,service_charge=:charge,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['subtotal' => $partsTotal, 'charge' => $serviceCharge, 'total' => $total, 'id' => $id]);
+            }
             if ($status === 'ongoing' && $update->rowCount() < 1) {
                 $job = job_card_record($id);
                 if (!$job) { http_response_code(404); exit('Job card not found.'); }
@@ -290,22 +416,32 @@ function handle_job_card_request(string $section): void
     if ($section === 'jobcards-item-add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
         $type = in_array($_POST['item_type'] ?? 'manual', ['part','service','manual'], true) ? $_POST['item_type'] : 'manual';
-        $name = trim((string)($_POST['item_name'] ?? '')); $quantity = max(0.01, (float)($_POST['quantity'] ?? 1)); $price = max(0, (float)($_POST['unit_price'] ?? 0)); $buyingPrice = max(0, (float)($_POST['buying_price'] ?? 0)); $stockId = max(0, (int)($_POST['stock_item_id'] ?? 0)); $serviceId = max(0, (int)($_POST['service_id'] ?? 0)); $code = null;
-        if ($type === 'part' && $stockId > 0) { $s=database()->prepare('SELECT part_code,part_name,selling_price FROM stock_items WHERE id=:id AND status="active"'); $s->execute(['id'=>$stockId]); $stock=$s->fetch(); if($stock){$name=$stock['part_name'];$code=$stock['part_code'];if($price<=0)$price=(float)$stock['selling_price'];} }
-        if ($type === 'service' && $serviceId > 0) { $s=database()->prepare('SELECT service_code,service_name,price FROM services WHERE id=:id AND status="active"'); $s->execute(['id'=>$serviceId]); $service=$s->fetch(); if($service){$name=$service['service_name'];$code=$service['service_code'];if($price<=0)$price=(float)$service['price'];} }
-        if ($name !== '' && ($type !== 'part' || $stockId > 0) && ($type !== 'service' || $serviceId > 0)) {
+        $name = trim((string)($_POST['item_name'] ?? '')); $quantity = max(0.01, (float)($_POST['quantity'] ?? 1)); $price = max(0, (float)($_POST['unit_price'] ?? 0)); $buyingPrice = max(0, (float)($_POST['buying_price'] ?? 0)); $stockId = max(0, (int)($_POST['stock_item_id'] ?? 0)); $serviceId = max(0, (int)($_POST['service_id'] ?? 0)); if ($type === 'service' && !empty($_POST['custom_service'])) $serviceId = 0; $code = null;
+        if ($type === 'part' && $stockId > 0) { $s=database()->prepare('SELECT part_code,part_name,selling_price FROM stock_items WHERE id=:id AND status="active"'); $s->execute(['id'=>$stockId]); $stock=$s->fetch(); if($stock){$name=$stock['part_name'];$code=$stock['part_code'];if($price<=0)$price=(float)$stock['selling_price'];} else {$stockId=0;} }
+        if ($type === 'service' && $serviceId > 0) { $s=database()->prepare('SELECT service_code,service_name,price FROM services WHERE id=:id AND status="active"'); $s->execute(['id'=>$serviceId]); $service=$s->fetch(); if($service){$name=$service['service_name'];$code=$service['service_code'];if($price<=0)$price=(float)$service['price'];} else {$serviceId=0;} }
+        if ($name !== '' && ($type !== 'part' || $stockId > 0) && ($type !== 'service' || $serviceId >= 0)) {
             $job = job_card_record($id);
             if (!$job) { http_response_code(404); exit('Job card not found.'); }
             $pdo = database();
             try {
                 $pdo->beginTransaction();
-                $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:amount)')->execute(['card'=>$id,'type'=>$type,'stock'=>$stockId?:null,'service'=>$serviceId?:null,'name'=>$name,'code'=>$code,'quantity'=>$quantity,'price'=>$price,'amount'=>$quantity*$price]);
-                if ($type === 'manual') add_external_part_expense($job, $name, $quantity, $buyingPrice, $price);
-                $sum=$pdo->prepare('SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id'); $sum->execute(['id'=>$id]); $partsTotal=(float)$sum->fetchColumn();
-                $serviceCharge=(float)($job['service_charge'] ?? 0); $total=$partsTotal+$serviceCharge;
-                $pdo->prepare('UPDATE job_cards SET subtotal=:subtotal,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['subtotal'=>$partsTotal,'total'=>$total,'id'=>$id]);
+                if ($type === 'service') {
+                    $sum = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id AND item_type <> 'service'");
+                    $sum->execute(['id' => $id]);
+                    $partsTotal = (float)$sum->fetchColumn();
+                    $serviceCharge = (float)($job['service_charge'] ?? 0) + ($quantity * $price);
+                    $total = $partsTotal + $serviceCharge;
+                } else {
+                    $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:amount)')->execute(['card'=>$id,'type'=>$type,'stock'=>$stockId?:null,'service'=>$serviceId?:null,'name'=>$name,'code'=>$code,'quantity'=>$quantity,'price'=>$price,'amount'=>$quantity*$price]);
+                    $itemId = (int)$pdo->lastInsertId();
+                    if ($type === 'part') reserve_job_card_stock($pdo, $stockId, $quantity, $itemId, $job);
+                    if ($type === 'manual') add_external_part_expense($job, $name, $quantity, $buyingPrice, $price);
+                    $sum=$pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id AND item_type <> 'service'"); $sum->execute(['id'=>$id]); $partsTotal=(float)$sum->fetchColumn(); $serviceCharge=(float)($job['service_charge'] ?? 0); $total=$partsTotal+$serviceCharge;
+                }
+                $pdo->prepare('UPDATE job_cards SET subtotal=:subtotal,service_charge=:service_charge,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['subtotal'=>$partsTotal,'service_charge'=>$serviceCharge,'total'=>$total,'id'=>$id]);
+                $pdo->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user) ON DUPLICATE KEY UPDATE amount=VALUES(amount),created_by=VALUES(created_by)')->execute(['job'=>$id,'amount'=>$serviceCharge,'user'=>current_user()['id']??null]);
                 $pdo->commit();
-                flash('success', $type === 'manual' ? 'Manual part added and buying cost recorded as an expense.' : 'Item added to job card.');
+                flash('success', $type === 'service' ? 'Service charge added to the job card.' : ($type === 'manual' ? 'Manual part added and buying cost recorded as an expense.' : 'Item added to job card.'));
             } catch (Throwable $exception) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
                 flash('error', 'The item could not be added: ' . $exception->getMessage());
@@ -313,26 +449,46 @@ function handle_job_card_request(string $section): void
         } else {
             flash('error', 'Select a valid stock part or enter a part name before adding the item.');
         }
-        redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        $returnSection = in_array($_POST['return_section'] ?? '', ['jobcards-edit', 'jobcards-view'], true) ? $_POST['return_section'] : 'jobcards-view';
+        redirect('index.php?page=admin&section='.$returnSection.'&id='.$id);
     }
     if ($section === 'jobcards-item-delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        verify_csrf(); database()->prepare('DELETE FROM job_card_items WHERE id=:item AND job_card_id=:card')->execute(['item'=>(int)($_POST['item_id']??0),'card'=>$id]); $sum=database()->prepare('SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id');$sum->execute(['id'=>$id]);$total=(float)$sum->fetchColumn();database()->prepare('UPDATE job_cards SET subtotal=:total,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['total'=>$total,'id'=>$id]);redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        verify_csrf();
+        $itemId = max(0, (int)($_POST['item_id'] ?? 0));
+        $job = job_card_record($id);
+        $pdo = database();
+        try {
+            $pdo->beginTransaction();
+            $item = $pdo->prepare('SELECT stock_item_id,quantity FROM job_card_items WHERE id=:item AND job_card_id=:card FOR UPDATE');
+            $item->execute(['item' => $itemId, 'card' => $id]);
+            $item = $item->fetch();
+            if ($item && $job) release_job_card_stock($pdo, $itemId, (int)$item['stock_item_id'], (float)$item['quantity'], $job);
+            $pdo->prepare('DELETE FROM job_card_items WHERE id=:item AND job_card_id=:card')->execute(['item'=>$itemId,'card'=>$id]);
+            $sum=$pdo->prepare("SELECT COALESCE(SUM(CASE WHEN item_type <> 'service' THEN amount ELSE 0 END),0) subtotal,COALESCE(SUM(CASE WHEN item_type='service' THEN amount ELSE 0 END),0) service_charge FROM job_card_items WHERE job_card_id=:id");$sum->execute(['id'=>$id]);$totals=$sum->fetch()?:['subtotal'=>0,'service_charge'=>0];$total=(float)$totals['subtotal']+(float)$totals['service_charge'];$pdo->prepare('UPDATE job_cards SET subtotal=:subtotal,service_charge=:service_charge,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['subtotal'=>(float)$totals['subtotal'],'service_charge'=>(float)$totals['service_charge'],'total'=>$total,'id'=>$id]);$pdo->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user) ON DUPLICATE KEY UPDATE amount=VALUES(amount),created_by=VALUES(created_by)')->execute(['job'=>$id,'amount'=>(float)$totals['service_charge'],'user'=>current_user()['id']??null]);
+            $pdo->commit();
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            flash('error', 'The item could not be removed: ' . $exception->getMessage());
+        }
+        redirect('index.php?page=admin&section=jobcards-view&id='.$id);
     }
     if ($section === 'jobcards-edit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
         $input = job_card_input();
         $errors = job_card_validate($input);
         if (!$errors) {
-            $statement = database()->prepare('UPDATE job_cards SET customer_id=:customer,vehicle_id=:vehicle,bay_name=:bay,mechanic_id=:mechanic,complaint=:complaint,requested_work=:work,notes=:notes,expected_delivery_date=:delivery,priority=:priority WHERE id=:id AND status="pending"');
+            $statement = database()->prepare('UPDATE job_cards SET customer_id=:customer,vehicle_id=:vehicle,bay_name=:bay,mechanic_id=:mechanic,complaint=:complaint,requested_work=:work,notes=:notes,expected_delivery_date=:delivery,priority=:priority WHERE id=:id AND status IN ("pending","ongoing")');
             $statement->execute(['customer'=>$input['customer_id'],'vehicle'=>$input['vehicle_id'] ?: null,'bay'=>$input['bay_name'] ?: null,'mechanic'=>$input['mechanic_id'] ?: null,'complaint'=>$input['complaint'],'work'=>$input['requested_work'] ?: null,'notes'=>$input['notes'] ?: null,'delivery'=>$input['expected_delivery_date'] ?: null,'priority'=>$input['priority'],'id'=>$id]);
             flash('success', 'Job card updated successfully.');
-            redirect('index.php?page=admin&section=jobcards-pending');
+            $updatedStatus = database()->prepare('SELECT status FROM job_cards WHERE id=:id');
+            $updatedStatus->execute(['id' => $id]);
+            redirect('index.php?page=admin&section=jobcards-' . ($updatedStatus->fetchColumn() === 'ongoing' ? 'ongoing' : 'pending'));
         }
     }
     if ($section === 'jobcards-edit') {
         $job = job_card_record($id);
         if (!$job) { http_response_code(404); exit('Job card not found.'); }
-        if ($job['status'] !== 'pending') { redirect('index.php?page=admin&section=jobcards-view&id=' . $id); }
+        if (!in_array($job['status'], ['pending', 'ongoing'], true)) { redirect('index.php?page=admin&section=jobcards-view&id=' . $id); }
         $input = ['customer_id'=>(int)$job['customer_id'],'vehicle_id'=>(int)$job['vehicle_id'],'bay_name'=>(string)($job['bay_name'] ?? ''),'mechanic_id'=>(int)($job['mechanic_id'] ?? 0),'complaint'=>(string)($job['complaint'] ?? ''),'requested_work'=>(string)($job['requested_work'] ?? ''),'notes'=>(string)($job['notes'] ?? ''),'expected_delivery_date'=>(string)($job['expected_delivery_date'] ?? ''),'priority'=>(string)$job['priority'],'items'=>$job['items']];
         $lookups = job_card_lookup(); $title = 'Edit Job Card ' . $job['job_card_no']; $sectionForHeader = $section;
         require __DIR__ . '/../includes/header.php'; require __DIR__ . '/../views/jobcard-edit.php'; require __DIR__ . '/../includes/footer.php'; return;
@@ -340,25 +496,53 @@ function handle_job_card_request(string $section): void
     if ($section === 'jobcards-view') {
         $job = job_card_record($id);
         if (!$job) { http_response_code(404); exit('Job card not found.'); }
+        sync_job_card_stock_reservations($job);
         $jobLookups = job_card_lookup(); $title = 'Job Card ' . $job['job_card_no']; $sectionForHeader = $section;
         require __DIR__ . '/../includes/header.php'; require __DIR__ . '/../views/' . ($job['status'] === 'ongoing' ? 'jobcard-ongoing.php' : 'jobcard-view.php'); require __DIR__ . '/../includes/footer.php'; return;
     }
     if ($section === 'jobcards-new' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
-        $input = job_card_input(); $errors = job_card_validate($input, ($_POST['save_mode'] ?? 'pending') === 'start');
+        $input = job_card_input();
+        $serviceCandidate = $input['primary_service_name'] !== '' ? $input['primary_service_name'] : ($input['requested_work'] !== '' ? $input['requested_work'] : $input['complaint']);
+        if ($input['primary_service_id'] < 1 && $serviceCandidate !== '') {
+            $serviceLookup = database()->prepare("SELECT id,price FROM services WHERE status='active' AND LOWER(service_name)=LOWER(:name) LIMIT 1");
+            $serviceLookup->execute(['name' => $serviceCandidate]);
+            $matchedService = $serviceLookup->fetch();
+            if ($matchedService) {
+                $input['primary_service_id'] = (int)$matchedService['id'];
+                $input['primary_service_price'] = (float)$matchedService['price'];
+            }
+        }
+        if ($input['complaint'] === '' && $input['primary_service_name'] !== '') $input['complaint'] = $input['primary_service_name'];
+        $errors = job_card_validate($input, ($_POST['save_mode'] ?? 'pending') === 'start');
         if (!$errors) {
             $pdo = database(); $pdo->beginTransaction();
             try {
-                $itemRows = []; $subtotal = 0;
+                $selectedService = null;
+                if ($input['primary_service_id'] > 0) {
+                    $serviceStatement = $pdo->prepare("SELECT id,service_code,service_name,description,price FROM services WHERE id=:id AND status='active' LIMIT 1");
+                    $serviceStatement->execute(['id' => $input['primary_service_id']]);
+                    $selectedService = $serviceStatement->fetch() ?: null;
+                    if (!$selectedService) throw new RuntimeException('Selected service is no longer active.');
+                    $alreadySelected = false;
+                    foreach ($input['items'] as $item) if ((int)($item['service_id'] ?? 0) === (int)$selectedService['id']) $alreadySelected = true;
+                    if (!$alreadySelected) $input['items'][] = ['type' => 'service', 'name' => $selectedService['service_name'], 'code' => $selectedService['service_code'], 'quantity' => 1, 'unit_price' => $selectedService['price'], 'service_id' => $selectedService['id']];
+                } elseif ($input['primary_service_name'] !== '') {
+                    $input['items'][] = ['type' => 'service', 'name' => $input['primary_service_name'], 'code' => '', 'quantity' => 1, 'unit_price' => $input['primary_service_price'], 'service_id' => 0];
+                }
+                $itemRows = []; $subtotal = 0; $serviceCharge = 0;
                 foreach ($input['items'] as $item) {
                     $name = trim((string)($item['name'] ?? '')); if ($name === '') continue;
-                    $qty = (float)($item['quantity'] ?? 1); $price = (float)($item['unit_price'] ?? 0); $amount = $qty * $price; $subtotal += $amount;
-                    $itemRows[] = ['type' => in_array(($item['type'] ?? 'manual'), ['part','service','manual'], true) ? $item['type'] : 'manual','name' => $name,'code' => trim((string)($item['code'] ?? '')),'quantity' => $qty,'price' => $price,'amount' => $amount,'stock_id' => max(0,(int)($item['stock_id'] ?? 0)),'service_id' => max(0,(int)($item['service_id'] ?? 0))];
+                    $type = in_array(($item['type'] ?? 'manual'), ['part','service','manual'], true) ? $item['type'] : 'manual'; $qty = (float)($item['quantity'] ?? 1); $price = (float)($item['unit_price'] ?? 0); $amount = $qty * $price; if ($type === 'service') $serviceCharge += $amount; else $subtotal += $amount;
+                    if ($type === 'service') continue;
+                    $itemRows[] = ['type' => $type,'name' => $name,'code' => trim((string)($item['code'] ?? '')),'quantity' => $qty,'price' => $price,'amount' => $amount,'stock_id' => max(0,(int)($item['stock_id'] ?? 0)),'service_id' => max(0,(int)($item['service_id'] ?? 0))];
                 }
                 $saveStatus = ($_POST['save_mode'] ?? 'pending') === 'start' ? 'ongoing' : 'pending';
-                $insert = $pdo->prepare('INSERT INTO job_cards (job_card_no,customer_id,vehicle_id,bay_name,mechanic_id,complaint,requested_work,notes,expected_delivery_date,priority,status,subtotal,total_amount,balance_amount,created_by,started_at) VALUES (:no,:customer,:vehicle,:bay,:mechanic,:complaint,:work,:notes,:delivery,:priority,:status,:subtotal,:total,:total,:user,:started)');
-                $insert->execute(['no'=>'TMP-'.bin2hex(random_bytes(4)),'customer'=>$input['customer_id'],'vehicle'=>$input['vehicle_id'] ?: null,'bay'=>$input['bay_name'],'mechanic'=>$input['mechanic_id'] ?: null,'complaint'=>$input['complaint'] ?: null,'work'=>$input['requested_work'] ?: null,'notes'=>$input['notes'] ?: null,'delivery'=>$input['expected_delivery_date'] ?: null,'priority'=>$input['priority'],'status'=>$saveStatus,'subtotal'=>$subtotal,'total'=>$subtotal,'user'=>current_user()['id'] ?? null,'started'=>$saveStatus==='ongoing'?date('Y-m-d H:i:s'):null]);
+                $total = $subtotal + $serviceCharge;
+                $insert = $pdo->prepare('INSERT INTO job_cards (job_card_no,customer_id,vehicle_id,bay_name,mechanic_id,complaint,requested_work,notes,expected_delivery_date,priority,status,subtotal,service_charge,total_amount,balance_amount,created_by,started_at) VALUES (:no,:customer,:vehicle,:bay,:mechanic,:complaint,:work,:notes,:delivery,:priority,:status,:subtotal,:service_charge,:total,:total,:user,:started)');
+                $insert->execute(['no'=>'TMP-'.bin2hex(random_bytes(4)),'customer'=>$input['customer_id'],'vehicle'=>$input['vehicle_id'] ?: null,'bay'=>$input['bay_name'],'mechanic'=>$input['mechanic_id'] ?: null,'complaint'=>$input['complaint'] ?: null,'work'=>$input['requested_work'] ?: null,'notes'=>$input['notes'] ?: null,'delivery'=>$input['expected_delivery_date'] ?: null,'priority'=>$input['priority'],'status'=>$saveStatus,'subtotal'=>$subtotal,'service_charge'=>$serviceCharge,'total'=>$total,'user'=>current_user()['id'] ?? null,'started'=>$saveStatus==='ongoing'?date('Y-m-d H:i:s'):null]);
                 $saved = (int)$pdo->lastInsertId(); $pdo->prepare('UPDATE job_cards SET job_card_no=:no WHERE id=:id')->execute(['no'=>job_card_no($saved),'id'=>$saved]);
+                if ($serviceCharge > 0) $pdo->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user)')->execute(['job' => $saved, 'amount' => $serviceCharge, 'user' => current_user()['id'] ?? null]);
                 $itemInsert = $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:amount)');
                 foreach ($itemRows as $item) $itemInsert->execute(['card'=>$saved,'type'=>$item['type'],'stock'=>$item['stock_id'] ?: null,'service'=>$item['service_id'] ?: null,'name'=>$item['name'],'code'=>$item['code'] ?: null,'quantity'=>$item['quantity'],'price'=>$item['price'],'amount'=>$item['amount']]);
                 $pdo->commit(); flash('success','Job card created successfully.'); redirect('index.php?page=admin&section=jobcards-'.$saveStatus);
