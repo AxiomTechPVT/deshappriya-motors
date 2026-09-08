@@ -7,6 +7,7 @@
     <title><?= e($title ?? 'Dashboard') ?> | Deshappriya Motors</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/style.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/style.css') ?>" rel="stylesheet">
+    <?php if (strpos((string) ($section ?? ''), 'reports-') === 0): ?><link href="assets/css/reports.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/reports.css') ?>" rel="stylesheet"><link href="assets/css/reports-overrides.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/reports-overrides.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (strpos((string) ($section ?? ''), 'jobcards') === 0): ?><link href="assets/css/jobcards.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcards.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (($section ?? '') === 'jobcards-edit'): ?><link href="assets/css/jobcard-edit.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-edit.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (in_array(($section ?? ''), ['jobcards-view', 'jobcards-receipt'], true)): ?><link href="assets/css/jobcard-payment.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-payment.css') ?>" rel="stylesheet"><?php endif; ?>
@@ -27,3 +28,4 @@
         </header>
         <main class="content-area">
             <?php if ($message = flash('success')): ?><div class="alert alert-success"><?= e($message) ?></div><?php endif; ?>
+            <?php if ($message = flash('error')): ?><div class="alert alert-danger"><?= e($message) ?></div><?php endif; ?>

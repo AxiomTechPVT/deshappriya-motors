@@ -101,6 +101,13 @@ if ($page === 'admin') {
         handle_other_income_request($section);
         exit;
     }
+    if (str_starts_with($section, 'reports')) {
+        require_once __DIR__ . '/includes/job-cards.php';
+        ensure_job_card_tables();
+        require_once __DIR__ . '/includes/reports.php';
+        handle_report_request($section);
+        exit;
+    }
     if (str_starts_with($section, 'expenses')) {
         require_once __DIR__ . '/includes/suppliers.php';
         require_once __DIR__ . '/includes/expenses.php';

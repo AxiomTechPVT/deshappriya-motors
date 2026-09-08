@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const charge = document.createElement('form');
                 charge.className = 'job-service-charge-form';
                 charge.method = 'post';
-                charge.action = 'index.php?page=admin&section=jobcards-service-charge';
+                charge.action = 'index.php?page=admin&section=jobcards-service-charge&id=' + encodeURIComponent(cardId);
                 charge.innerHTML = '<input type="hidden" name="csrf_token" value="' + escapeHtml(csrf) + '"><input type="hidden" name="job_card_id" value="' + escapeHtml(cardId) + '"><label>Service Charge (Rs.)<div class="job-inline-input"><input class="form-control" type="number" name="service_charge" min="0" step="0.01" value="' + Number(summary.service_charge || 0).toFixed(2) + '"><button class="btn btn-light" type="submit">Save</button></div></label>';
                 amountBox.prepend(charge);
                 const paymentButton = amountBox.querySelector('.btn-primary');
@@ -138,9 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const due = Number(summary.balance || 0);
                     const fullTotal = Number(summary.total || 0);
                     const payable = due > 0.009 ? due : fullTotal;
+                    if (payable <= 0.009) {
+                        window.alert('Add at least one spare part or service charge before collecting payment. The current job total is Rs. 0.00.');
+                        return;
+                    }
                     const startingAmount = payable;
-                    const savedStart = summary.performance?.start_time ? summary.performance.start_time.replace(' ', 'T').slice(0, 16) : '';
-                    const savedEnd = summary.performance?.end_time ? summary.performance.end_time.replace(' ', 'T').slice(0, 16) : '';
+                    const currentDateTime = () => { const date = new Date(); const pad = (value) => String(value).padStart(2, '0'); return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes()); };
+                    const savedStart = summary.performance?.start_time ? summary.performance.start_time.replace(' ', 'T').slice(0, 16) : (summary.started_at ? summary.started_at.replace(' ', 'T').slice(0, 16) : currentDateTime());
+                    const savedEnd = summary.performance?.end_time ? summary.performance.end_time.replace(' ', 'T').slice(0, 16) : currentDateTime();
                     backdrop.innerHTML = '<section class="job-start-modal payment-modal"><div class="manual-part-modal-heading"><div><span class="modal-eyebrow">PAYMENT</span><h2>Collect Payment</h2><p>Enter work times and the amount received before generating the bill.</p></div><button type="button" class="customer-modal-close" data-payment-close>&times;</button></div><form method="post" action="index.php?page=admin&section=jobcards-payment"><input type="hidden" name="csrf_token" value="' + escapeHtml(csrf) + '"><input type="hidden" name="job_card_id" value="' + escapeHtml(cardId) + '"><div class="payment-due-card"><span>Full Job Amount</span><strong>Rs. ' + fullTotal.toFixed(2) + '</strong><small>Outstanding: Rs. ' + due.toFixed(2) + '</small></div><div class="performance-time-grid"><label>Start Time *<input class="form-control" type="datetime-local" name="performance_start" value="' + escapeHtml(savedStart) + '" required></label><label>End Time *<input class="form-control" type="datetime-local" name="performance_end" value="' + escapeHtml(savedEnd) + '" required></label></div><label>Amount Received (Rs.) *<input class="form-control payment-received" type="number" name="amount" value="' + startingAmount.toFixed(2) + '" min="0.01" step="0.01" required></label><label>Payment Method<select class="form-select payment-method" name="payment_method"><option value="cash">Cash</option><option value="card">Card</option><option value="bank">Bank Transfer</option><option value="other">Other</option></select></label><div class="payment-calculation"><div><span>Applied Amount</span><strong data-payment-applied>Rs. ' + payable.toFixed(2) + '</strong></div><div><span>Change / Balance</span><strong data-payment-change>Rs. 0.00</strong></div></div><div class="job-start-modal-actions"><button type="button" class="btn btn-light" data-payment-close>Close</button><button class="btn btn-primary" type="submit">Pay &amp; Generate Receipt</button></div></form></section>';
                     document.body.appendChild(backdrop);
                     const received = backdrop.querySelector('.payment-received');

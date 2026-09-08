@@ -8,6 +8,7 @@ function ensure_job_card_tables(): void
     if ($ready) return;
     $pdo = database();
     $pdo->exec("CREATE TABLE IF NOT EXISTS job_cards (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,job_card_no VARCHAR(30) NOT NULL,customer_id BIGINT UNSIGNED NOT NULL,vehicle_id BIGINT UNSIGNED NULL,bay_name VARCHAR(80) NULL,mechanic_id BIGINT UNSIGNED NULL,complaint TEXT NULL,requested_work TEXT NULL,notes TEXT NULL,expected_delivery_date DATE NULL,priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal',status ENUM('pending','ongoing','completed','cancelled') NOT NULL DEFAULT 'pending',subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,discount DECIMAL(12,2) NOT NULL DEFAULT 0,total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0,balance_amount DECIMAL(12,2) NOT NULL DEFAULT 0,payment_method ENUM('cash','card','bank','other') NULL,created_by BIGINT UNSIGNED NULL,started_at DATETIME NULL,completed_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY(id),UNIQUE KEY job_cards_no_unique(job_card_no),KEY job_cards_customer_index(customer_id),KEY job_cards_vehicle_index(vehicle_id),KEY job_cards_status_index(status),CONSTRAINT job_cards_customer_fk FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE,CONSTRAINT job_cards_vehicle_fk FOREIGN KEY(vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,CONSTRAINT job_cards_mechanic_fk FOREIGN KEY(mechanic_id) REFERENCES employees(id) ON DELETE SET NULL,CONSTRAINT job_cards_user_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS job_card_service_charges (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,job_card_id BIGINT UNSIGNED NOT NULL,amount DECIMAL(12,2) NOT NULL DEFAULT 0,created_by BIGINT UNSIGNED NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY(id),UNIQUE KEY job_card_service_charge_unique(job_card_id),CONSTRAINT job_card_service_charge_card_fk FOREIGN KEY(job_card_id) REFERENCES job_cards(id) ON DELETE CASCADE,CONSTRAINT job_card_service_charge_user_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     $pdo->exec("CREATE TABLE IF NOT EXISTS job_card_items (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,job_card_id BIGINT UNSIGNED NOT NULL,item_type ENUM('part','service','manual') NOT NULL DEFAULT 'manual',stock_item_id BIGINT UNSIGNED NULL,service_id BIGINT UNSIGNED NULL,item_name VARCHAR(190) NOT NULL,item_code VARCHAR(80) NULL,quantity DECIMAL(12,2) NOT NULL DEFAULT 1,unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,discount DECIMAL(12,2) NOT NULL DEFAULT 0,amount DECIMAL(12,2) NOT NULL DEFAULT 0,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(id),KEY job_card_items_card_index(job_card_id),CONSTRAINT job_card_items_card_fk FOREIGN KEY(job_card_id) REFERENCES job_cards(id) ON DELETE CASCADE,CONSTRAINT job_card_items_stock_fk FOREIGN KEY(stock_item_id) REFERENCES stock_items(id) ON DELETE SET NULL,CONSTRAINT job_card_items_service_fk FOREIGN KEY(service_id) REFERENCES services(id) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     if (!$pdo->query("SHOW COLUMNS FROM job_cards LIKE 'service_charge'")->fetch()) $pdo->exec("ALTER TABLE job_cards ADD service_charge DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER subtotal");
     $pdo->exec("CREATE TABLE IF NOT EXISTS job_card_payments (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,job_card_id BIGINT UNSIGNED NOT NULL,receipt_no VARCHAR(40) NOT NULL,amount DECIMAL(12,2) NOT NULL,payment_method ENUM('cash','card','bank','other') NOT NULL DEFAULT 'cash',paid_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,created_by BIGINT UNSIGNED NULL,PRIMARY KEY(id),UNIQUE KEY job_card_payments_receipt_unique(receipt_no),KEY job_card_payments_card_index(job_card_id),CONSTRAINT job_card_payments_card_fk FOREIGN KEY(job_card_id) REFERENCES job_cards(id) ON DELETE CASCADE,CONSTRAINT job_card_payments_user_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
@@ -140,15 +141,47 @@ function handle_job_card_request(string $section): void
         $payments->execute(['id'=>$id]);
         $performance = database()->prepare('SELECT start_time,end_time,duration_minutes FROM job_card_performance WHERE job_card_id=:id LIMIT 1');
         $performance->execute(['id'=>$id]);
-        echo json_encode(['service_charge'=>(float)($job['service_charge'] ?? 0),'total'=>(float)$job['total_amount'],'paid'=>(float)$job['paid_amount'],'balance'=>(float)$job['balance_amount'],'started_at'=>$job['started_at'],'performance'=>$performance->fetch() ?: null,'payments'=>$payments->fetchAll()]);
+        $serviceCharge = database()->prepare('SELECT COALESCE((SELECT amount FROM job_card_service_charges WHERE job_card_id=:id), :fallback)');
+        $serviceCharge->execute(['id'=>$id,'fallback'=>(float)($job['service_charge'] ?? 0)]);
+        echo json_encode(['service_charge'=>(float)$serviceCharge->fetchColumn(),'total'=>(float)$job['total_amount'],'paid'=>(float)$job['paid_amount'],'balance'=>(float)$job['balance_amount'],'started_at'=>$job['started_at'],'performance'=>$performance->fetch() ?: null,'payments'=>$payments->fetchAll()]);
         return;
     }
     if ($section === 'jobcards-service-charge' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
+        if ($id < 1) {
+            flash('error', 'The job card could not be identified. Please refresh the job card page and try again.');
+            redirect('index.php?page=admin&section=jobcards-ongoing');
+        }
+        $jobStatus = database()->prepare('SELECT status FROM job_cards WHERE id=:id');
+        $jobStatus->execute(['id'=>$id]);
+        $status = $jobStatus->fetchColumn();
+        if ($status === false) {
+            flash('error', 'Job card not found.');
+            redirect('index.php?page=admin&section=jobcards-ongoing');
+        }
+        if ($status !== 'ongoing') {
+            flash('error', 'Service charge can only be changed while the job card is ongoing.');
+            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        }
         $charge = max(0, (float)($_POST['service_charge'] ?? 0));
         $sum = database()->prepare('SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id'); $sum->execute(['id'=>$id]);
         $partsTotal = (float)$sum->fetchColumn(); $total = $partsTotal + $charge;
-        database()->prepare('UPDATE job_cards SET service_charge=:charge,subtotal=:subtotal,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['charge'=>$charge,'subtotal'=>$partsTotal,'total'=>$total,'id'=>$id]);
+        database()->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user) ON DUPLICATE KEY UPDATE amount=VALUES(amount),created_by=VALUES(created_by)')->execute(['job'=>$id,'amount'=>$charge,'user'=>current_user()['id'] ?? null]);
+        $updated = database()->prepare('UPDATE job_cards SET service_charge=:charge,subtotal=:subtotal,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id AND status="ongoing"');
+        $updated->execute(['charge'=>$charge,'subtotal'=>$partsTotal,'total'=>$total,'id'=>$id]);
+        if ($updated->rowCount() < 1) {
+            $exists = database()->prepare('SELECT id,status FROM job_cards WHERE id=:id');
+            $exists->execute(['id'=>$id]);
+            $existingJob = $exists->fetch();
+            if (!$existingJob) {
+                flash('error', 'Job card not found.');
+            } elseif ($existingJob['status'] !== 'ongoing') {
+                flash('error', 'Service charge could not be saved because this job card is no longer ongoing.');
+            } else {
+                flash('success', 'Service charge updated.');
+            }
+            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        }
         flash('success', 'Service charge updated.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id);
     }
     if ($section === 'jobcards-payment' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -168,6 +201,11 @@ function handle_job_card_request(string $section): void
             flash('error', 'Enter valid performance start and end times before generating the bill.');
             redirect('index.php?page=admin&section=jobcards-view&id='.$id);
         }
+        $totalAmount = (float)$job['total_amount'];
+        if ($totalAmount <= 0.009) {
+            flash('error', 'Add at least one spare part or service charge before generating a payment receipt.');
+            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        }
         $balance = max(0, (float)$job['balance_amount']);
         if ($balance <= 0.009) { flash('error', 'This job card is already fully paid.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
         if ($amountReceived <= 0 || ($method !== 'cash' && $amountReceived > $balance + 0.009)) { flash('error', $method === 'cash' ? 'Enter the cash received amount.' : 'Card or bank payment cannot exceed the outstanding balance.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
@@ -185,7 +223,8 @@ function handle_job_card_request(string $section): void
                 $alreadyUsed = $pdo->prepare("SELECT 1 FROM stock_movements WHERE reference_type='job_card_item' AND reference_id=:item LIMIT 1");
                 $alreadyUsed->execute(['item' => (int)$item['id']]);
                 if (!$alreadyUsed->fetchColumn()) {
-                    consume_stock_fifo($stockItemId, $quantity, 'job_card_item', (int)$item['id'], current_user()['id'] ?? null, 'Stock used for job card ' . $job['job_card_no'], $pdo);
+                    $userId = isset(current_user()['id']) ? (int) current_user()['id'] : null;
+                    consume_stock_fifo($stockItemId, $quantity, 'job_card_item', (int)$item['id'], $userId, 'Stock used for job card ' . $job['job_card_no'], $pdo);
                 }
             }
             $pdo->prepare('INSERT INTO job_card_payments (job_card_id,receipt_no,amount,amount_received,change_amount,payment_method,created_by) VALUES (:job,:receipt,:amount,:received,:change,:method,:user)')->execute(['job'=>$id,'receipt'=>$receiptNo,'amount'=>$amountApplied,'received'=>$amountReceived,'change'=>$changeAmount,'method'=>$method,'user'=>current_user()['id'] ?? null]);
@@ -194,7 +233,7 @@ function handle_job_card_request(string $section): void
             $pdo->prepare('UPDATE job_cards SET paid_amount=:paid,balance_amount=:balance,payment_method=:method,status="completed",completed_at=COALESCE(completed_at,NOW()) WHERE id=:id')->execute(['paid'=>$paid,'balance'=>$newBalance,'method'=>$method,'id'=>$id]);
             $pdo->commit();
             flash('success', 'Payment recorded and receipt created.'); redirect('index.php?page=admin&section=jobcards-receipt&id='.$paymentId);
-        } catch (Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); flash('error', 'Payment could not be recorded.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
+        } catch (Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); flash('error', 'Payment could not be recorded: ' . $exception->getMessage()); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
     }
     if ($section === 'jobcards-receipt') {
         $statement = database()->prepare('SELECT p.*,j.job_card_no,j.subtotal,j.service_charge,j.total_amount,j.paid_amount,j.balance_amount,c.name AS customer_name,c.contact_number,v.vehicle_number,perf.start_time AS performance_start,perf.end_time AS performance_end,perf.duration_minutes AS performance_duration,(SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=j.id) AS parts_total FROM job_card_payments p JOIN job_cards j ON j.id=p.job_card_id JOIN customers c ON c.id=j.customer_id LEFT JOIN vehicles v ON v.id=j.vehicle_id LEFT JOIN job_card_performance perf ON perf.job_card_id=j.id WHERE p.id=:id LIMIT 1');
@@ -254,7 +293,7 @@ function handle_job_card_request(string $section): void
         $name = trim((string)($_POST['item_name'] ?? '')); $quantity = max(0.01, (float)($_POST['quantity'] ?? 1)); $price = max(0, (float)($_POST['unit_price'] ?? 0)); $buyingPrice = max(0, (float)($_POST['buying_price'] ?? 0)); $stockId = max(0, (int)($_POST['stock_item_id'] ?? 0)); $serviceId = max(0, (int)($_POST['service_id'] ?? 0)); $code = null;
         if ($type === 'part' && $stockId > 0) { $s=database()->prepare('SELECT part_code,part_name,selling_price FROM stock_items WHERE id=:id AND status="active"'); $s->execute(['id'=>$stockId]); $stock=$s->fetch(); if($stock){$name=$stock['part_name'];$code=$stock['part_code'];if($price<=0)$price=(float)$stock['selling_price'];} }
         if ($type === 'service' && $serviceId > 0) { $s=database()->prepare('SELECT service_code,service_name,price FROM services WHERE id=:id AND status="active"'); $s->execute(['id'=>$serviceId]); $service=$s->fetch(); if($service){$name=$service['service_name'];$code=$service['service_code'];if($price<=0)$price=(float)$service['price'];} }
-        if ($name !== '') {
+        if ($name !== '' && ($type !== 'part' || $stockId > 0) && ($type !== 'service' || $serviceId > 0)) {
             $job = job_card_record($id);
             if (!$job) { http_response_code(404); exit('Job card not found.'); }
             $pdo = database();
@@ -262,14 +301,17 @@ function handle_job_card_request(string $section): void
                 $pdo->beginTransaction();
                 $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:amount)')->execute(['card'=>$id,'type'=>$type,'stock'=>$stockId?:null,'service'=>$serviceId?:null,'name'=>$name,'code'=>$code,'quantity'=>$quantity,'price'=>$price,'amount'=>$quantity*$price]);
                 if ($type === 'manual') add_external_part_expense($job, $name, $quantity, $buyingPrice, $price);
-                $sum=$pdo->prepare('SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id'); $sum->execute(['id'=>$id]); $total=(float)$sum->fetchColumn();
-                $pdo->prepare('UPDATE job_cards SET subtotal=:total,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['total'=>$total,'id'=>$id]);
+                $sum=$pdo->prepare('SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=:id'); $sum->execute(['id'=>$id]); $partsTotal=(float)$sum->fetchColumn();
+                $serviceCharge=(float)($job['service_charge'] ?? 0); $total=$partsTotal+$serviceCharge;
+                $pdo->prepare('UPDATE job_cards SET subtotal=:subtotal,total_amount=:total,balance_amount=GREATEST(0,:total-paid_amount) WHERE id=:id')->execute(['subtotal'=>$partsTotal,'total'=>$total,'id'=>$id]);
                 $pdo->commit();
                 flash('success', $type === 'manual' ? 'Manual part added and buying cost recorded as an expense.' : 'Item added to job card.');
             } catch (Throwable $exception) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
-                flash('error', 'The part could not be added.');
+                flash('error', 'The item could not be added: ' . $exception->getMessage());
             }
+        } else {
+            flash('error', 'Select a valid stock part or enter a part name before adding the item.');
         }
         redirect('index.php?page=admin&section=jobcards-view&id='.$id);
     }
