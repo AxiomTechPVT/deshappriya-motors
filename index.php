@@ -115,6 +115,11 @@ if ($page === 'admin') {
         handle_user_management_request($section);
         exit;
     }
+    if ($section === 'settings') {
+        require_once __DIR__ . '/includes/settings.php';
+        handle_settings_request();
+        exit;
+    }
     if (str_starts_with($section, 'expenses')) {
         require_once __DIR__ . '/includes/suppliers.php';
         require_once __DIR__ . '/includes/expenses.php';

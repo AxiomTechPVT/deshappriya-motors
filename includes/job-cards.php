@@ -241,7 +241,7 @@ function handle_job_card_request(string $section): void
         if (!$payment) { http_response_code(404); exit('Receipt not found.'); }
         $items = database()->prepare('SELECT item_type,item_name,item_code,quantity,unit_price,amount FROM job_card_items WHERE job_card_id=:job ORDER BY id');
         $items->execute(['job'=>$payment['job_card_id']]); $receiptItems = $items->fetchAll();
-        $receiptSettings = database()->query('SELECT garage_name,tagline,contact_number,email,address,receipt_header,receipt_footer FROM receipt_settings WHERE id=1 LIMIT 1')->fetch() ?: [];
+        $receiptSettings = receipt_settings();
         $title = 'Payment Receipt ' . $payment['receipt_no']; $sectionForHeader = $section;
         require __DIR__ . '/../includes/header.php'; require __DIR__ . '/../views/jobcard-receipt.php'; require __DIR__ . '/../includes/footer.php'; return;
     }

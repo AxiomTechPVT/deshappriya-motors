@@ -1,4 +1,5 @@
 <?php
+$reportSettings = receipt_settings();
 $printMode = true;
 ?>
 <!doctype html>
@@ -20,6 +21,7 @@ $printMode = true;
         .print-header h1 { margin:0 0 6px; font-size:28px; }
         .print-header p { margin:0; color:#667085; }
         .print-meta { color:#667085; font-size:12px; text-align:right; }
+        .report-print-note { margin:0 0 16px; padding:8px 12px; border:1px dashed #98a2b3; white-space:pre-line; }
         @media print {
             @page { size: landscape; margin: 10mm; }
             body { background:#fff; }
@@ -93,7 +95,13 @@ $printMode = true;
 </head>
 <body class="report-print-page">
 <main class="print-shell">
+    <header class="report-print-brand">
+        <?php if ($logo = receipt_logo_path($reportSettings)): ?><img src="<?= e($logo) ?>" alt="<?= e($reportSettings['garage_name']) ?> logo"><?php endif; ?>
+        <div><strong><?= e($reportSettings['garage_name']) ?></strong><?php if (!empty($reportSettings['tagline'])): ?><span><?= e($reportSettings['tagline']) ?></span><?php endif; ?><?php if (!empty($reportSettings['address'])): ?><span><?= e($reportSettings['address']) ?></span><?php endif; ?><?php if (!empty($reportSettings['contact_number'])): ?><span><?= e($reportSettings['contact_number']) ?></span><?php endif; ?><?php if (!empty($reportSettings['secondary_contact_number'])): ?><span><?= e($reportSettings['secondary_contact_number']) ?></span><?php endif; ?><?php if (!empty($reportSettings['email'])): ?><span><?= e($reportSettings['email']) ?></span><?php endif; ?></div>
+    </header>
+    <?php if (!empty($reportSettings['receipt_header'])): ?><div class="report-print-note"><?= nl2br(e($reportSettings['receipt_header'])) ?></div><?php endif; ?>
     <?php require __DIR__ . '/reports.php'; ?>
+    <footer class="report-print-footer"><?php if (!empty($reportSettings['receipt_footer'])): ?><span><?= nl2br(e($reportSettings['receipt_footer'])) ?></span><?php endif; ?><strong><?= e(powered_by_text()) ?></strong></footer>
 </main>
 <?php if (($_GET['mode'] ?? '') === 'print'): ?>
 <script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>

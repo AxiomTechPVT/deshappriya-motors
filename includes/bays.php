@@ -27,7 +27,7 @@ function bay_rows(): array
 {
     $hasJobCards = (bool) database()->query("SHOW TABLES LIKE 'job_cards'")->fetchColumn();
     $jobColumns = $hasJobCards ? ', jc.job_card_no, jc.status AS job_status, v.vehicle_number' : ", NULL AS job_card_no, NULL AS job_status, NULL AS vehicle_number";
-    $jobJoins = $hasJobCards ? " LEFT JOIN job_cards jc ON jc.bay = b.bay_name AND jc.status IN ('pending','ongoing') LEFT JOIN vehicles v ON v.id = jc.vehicle_id" : '';
+    $jobJoins = $hasJobCards ? " LEFT JOIN job_cards jc ON jc.bay_name = b.bay_name AND jc.status IN ('pending','ongoing') LEFT JOIN vehicles v ON v.id = jc.vehicle_id" : '';
     $groupColumns = $hasJobCards ? ', jc.job_card_no, jc.status, v.vehicle_number' : '';
     $sql = "SELECT b.id, b.bay_name, b.status, b.assigned_employee_id, b.notes, b.created_at, b.updated_at, e.name AS employee_name, e.employee_code{$jobColumns} FROM bays b LEFT JOIN employees e ON e.id = b.assigned_employee_id{$jobJoins} GROUP BY b.id, b.bay_name, b.status, b.assigned_employee_id, b.notes, b.created_at, b.updated_at, e.name, e.employee_code{$groupColumns} ORDER BY b.id ASC";
     return database()->query($sql)->fetchAll();

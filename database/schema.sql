@@ -6,8 +6,10 @@ CREATE TABLE IF NOT EXISTS `receipt_settings` (
     `garage_name` VARCHAR(160) NOT NULL,
     `tagline` VARCHAR(190) NULL,
     `contact_number` VARCHAR(40) NULL,
+    `secondary_contact_number` VARCHAR(40) NULL,
     `email` VARCHAR(190) NULL,
     `address` TEXT NULL,
+    `logo_path` VARCHAR(255) NULL,
     `receipt_header` TEXT NULL,
     `receipt_footer` TEXT NULL,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -33,6 +35,19 @@ CREATE TABLE IF NOT EXISTS `users` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `users_email_unique` (`email`),
     UNIQUE KEY `users_username_unique` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `system_settings` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `setting_key` VARCHAR(100) NOT NULL,
+    `setting_value` TEXT NULL,
+    `setting_group` VARCHAR(30) NOT NULL,
+    `updated_by` BIGINT UNSIGNED NULL,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `system_settings_key_unique` (`setting_key`),
+    KEY `system_settings_group_index` (`setting_group`),
+    CONSTRAINT `system_settings_user_fk` FOREIGN KEY (`updated_by`) REFERENCES users (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS suppliers (
