@@ -97,6 +97,40 @@ function report_money_value(float|int|string|null $value): float
     return round((float) $value, 2);
 }
 
+function report_duration_display(float|int|string|null $minutes): string
+{
+    $totalMinutes = max(0, (float) $minutes);
+    if ($totalMinutes <= 0) {
+        return '0 min';
+    }
+
+    $hours = (int) floor($totalMinutes / 60);
+    $remainingMinutes = (int) floor($totalMinutes - ($hours * 60));
+    $seconds = (int) round(($totalMinutes - floor($totalMinutes)) * 60);
+
+    if ($seconds === 60) {
+        $remainingMinutes++;
+        $seconds = 0;
+    }
+    if ($remainingMinutes === 60) {
+        $hours++;
+        $remainingMinutes = 0;
+    }
+
+    $parts = [];
+    if ($hours > 0) {
+        $parts[] = $hours . ' hr';
+    }
+    if ($remainingMinutes > 0) {
+        $parts[] = $remainingMinutes . ' min';
+    }
+    if ($hours === 0 && $remainingMinutes === 0 && $seconds > 0) {
+        $parts[] = $seconds . ' sec';
+    }
+
+    return implode(' ', $parts);
+}
+
 function report_sql_value(string $sql, array $params = []): float
 {
     $statement = database()->prepare($sql);
@@ -301,7 +335,12 @@ function report_apply_date_filter(string $column, array &$where, array &$params,
 
 function report_summary_card(string $label, mixed $value, string $tone = ''): array
 {
-    return ['label' => $label, 'value' => report_money((float) $value), 'tone' => $tone];
+    return ['label' => $label, 'value' => report_money((float) $value), 'tone' => $tone, 'currency' => true];
+}
+
+function report_count_card(string $label, mixed $value, string $tone = ''): array
+{
+    return ['label' => $label, 'value' => number_format((float) $value, 0), 'tone' => $tone, 'currency' => false];
 }
 
 function report_build(string $section, array $filters, bool $exportAll = false): array
@@ -535,11 +574,11 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $params
         )[0] ?? [];
         $cards = [
-            report_summary_card('Total Job Cards', $summary['total_cards'] ?? 0, 'blue'),
-            report_summary_card('Pending', $summary['pending_cards'] ?? 0, 'orange'),
-            report_summary_card('Ongoing', $summary['ongoing_cards'] ?? 0, 'navy'),
-            report_summary_card('Completed', $summary['completed_cards'] ?? 0, 'green'),
-            report_summary_card('Cancelled', $summary['cancelled_cards'] ?? 0, 'red'),
+            report_count_card('Total Job Cards', $summary['total_cards'] ?? 0, 'blue'),
+            report_count_card('Pending', $summary['pending_cards'] ?? 0, 'orange'),
+            report_count_card('Ongoing', $summary['ongoing_cards'] ?? 0, 'navy'),
+            report_count_card('Completed', $summary['completed_cards'] ?? 0, 'green'),
+            report_count_card('Cancelled', $summary['cancelled_cards'] ?? 0, 'red'),
         ];
         $columns = [
             'job_card_no' => 'Job Card No',
@@ -601,10 +640,10 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $params
         )[0] ?? [];
         $cards = [
-            report_summary_card('Total Invoices', $summary['total_invoices'] ?? 0, 'blue'),
-            report_summary_card('Paid Invoices', $summary['paid_invoices'] ?? 0, 'green'),
-            report_summary_card('Partial Invoices', $summary['partial_invoices'] ?? 0, 'orange'),
-            report_summary_card('Due Invoices', $summary['due_invoices'] ?? 0, 'red'),
+            report_count_card('Total Invoices', $summary['total_invoices'] ?? 0, 'blue'),
+            report_count_card('Paid Invoices', $summary['paid_invoices'] ?? 0, 'green'),
+            report_count_card('Partial Invoices', $summary['partial_invoices'] ?? 0, 'orange'),
+            report_count_card('Due Invoices', $summary['due_invoices'] ?? 0, 'red'),
             report_summary_card('Total Invoice Value', $summary['total_invoice_value'] ?? 0, 'navy'),
             report_summary_card('Total Outstanding', $summary['total_outstanding'] ?? 0, 'purple'),
         ];
@@ -661,8 +700,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
                 COALESCE(SUM(e.total_amount),0) AS total_expenses,
                 COALESCE(SUM(CASE WHEN e.expense_type = "general" THEN e.total_amount ELSE 0 END),0) AS general_expenses,
                 COALESCE(SUM(CASE WHEN e.expense_type = "external_part" THEN e.total_amount ELSE 0 END),0) AS external_part_expenses,
-                COALESCE(SUM(CASE WHEN e.payment_status IN ("paid","partial") THEN e.paid_amount ELSE 0 END),0) AS paid_expenses,
-                COALESCE(SUM(CASE WHEN e.payment_status IN ("due","partial") THEN e.balance_amount ELSE 0 END),0) AS outstanding_expense_payments
+                COALESCE(SUM(CASE WHEN e.status IN ("paid","partial") THEN e.paid_amount ELSE 0 END),0) AS paid_expenses,
+                COALESCE(SUM(CASE WHEN e.status IN ("due","partial") THEN e.balance_amount ELSE 0 END),0) AS outstanding_expense_payments
             FROM expenses e
             WHERE ' . implode(' AND ', $baseWhere),
             $params
@@ -718,10 +757,10 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             'SELECT COALESCE(SUM(quantity_remaining * buying_price),0) FROM stock_batches WHERE quantity_remaining > 0'
         );
         $cards = [
-            report_summary_card('Total Stock Items', $summaryRow['total_items'] ?? 0, 'blue'),
-            report_summary_card('In Stock', $summaryRow['in_stock'] ?? 0, 'green'),
-            report_summary_card('Low Stock', $summaryRow['low_stock'] ?? 0, 'orange'),
-            report_summary_card('Out of Stock', $summaryRow['out_stock'] ?? 0, 'red'),
+            report_count_card('Total Stock Items', $summaryRow['total_items'] ?? 0, 'blue'),
+            report_count_card('In Stock', $summaryRow['in_stock'] ?? 0, 'green'),
+            report_count_card('Low Stock', $summaryRow['low_stock'] ?? 0, 'orange'),
+            report_count_card('Out of Stock', $summaryRow['out_stock'] ?? 0, 'red'),
             report_summary_card('Current Stock Value', $summaryRow['stock_value'] ?? 0, 'purple'),
         ];
         if ($view === 'movements') {
@@ -800,6 +839,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         } elseif ($filters['outstanding_status'] === 'clear') {
             $baseWhere[] = 'COALESCE(inv.outstanding, 0) <= 0';
         }
+        $summaryParams = $params;
+        unset($summaryParams['date_from'], $summaryParams['date_to']);
         $summary = report_sql_rows(
             'SELECT
                 COUNT(*) AS total_customers,
@@ -813,17 +854,17 @@ function report_build(string $section, array $filters, bool $exportAll = false):
                 GROUP BY customer_id
             ) inv ON inv.customer_id = c.id
             WHERE ' . implode(' AND ', array_filter($baseWhere, static fn($item) => !str_starts_with($item, 'DATE(c.created_at)'))),
-            $params
+            $summaryParams
         )[0] ?? [];
         $summary['new_customers'] = report_sql_value(
             'SELECT COUNT(*) FROM customers WHERE DATE(created_at) BETWEEN :date_from AND :date_to',
             ['date_from' => $bounds['from'], 'date_to' => $bounds['to']]
         );
         $cards = [
-            report_summary_card('Total Customers', $summary['total_customers'] ?? 0, 'blue'),
-            report_summary_card('New Customers', $summary['new_customers'] ?? 0, 'green'),
-            report_summary_card('Active Customers', $summary['active_customers'] ?? 0, 'orange'),
-            report_summary_card('Customers With Outstanding', $summary['customers_with_outstanding'] ?? 0, 'red'),
+            report_count_card('Total Customers', $summary['total_customers'] ?? 0, 'blue'),
+            report_count_card('New Customers', $summary['new_customers'] ?? 0, 'green'),
+            report_count_card('Active Customers', $summary['active_customers'] ?? 0, 'orange'),
+            report_count_card('Customers With Outstanding', $summary['customers_with_outstanding'] ?? 0, 'red'),
         ];
         $columns = ['customer_name' => 'Customer', 'contact_number' => 'Phone', 'total_vehicles' => 'Total Vehicles', 'total_jobs' => 'Total Jobs', 'total_invoices' => 'Total Invoices', 'total_spending' => 'Total Spending', 'outstanding' => 'Outstanding'];
         $sql = 'SELECT
@@ -869,6 +910,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $baseWhere[] = '(v.make LIKE :make_model OR v.model LIKE :make_model)';
             $params['make_model'] = '%' . $filters['make_model'] . '%';
         }
+        $summaryParams = $params;
+        unset($summaryParams['date_from'], $summaryParams['date_to']);
         $summary = report_sql_rows(
             'SELECT
                 COUNT(*) AS total_vehicles,
@@ -888,13 +931,13 @@ function report_build(string $section, array $filters, bool $exportAll = false):
                 GROUP BY vehicle_id
             ) inv ON inv.vehicle_id = v.id
             WHERE ' . implode(' AND ', array_filter($baseWhere, static fn($item) => !str_starts_with($item, 'DATE(v.created_at)'))),
-            $params
+            $summaryParams
         )[0] ?? [];
         $cards = [
-            report_summary_card('Total Vehicles', $summary['total_vehicles'] ?? 0, 'blue'),
-            report_summary_card('Active Vehicles', $summary['active_vehicles'] ?? 0, 'green'),
-            report_summary_card('Vehicles In Service', $summary['vehicles_in_service'] ?? 0, 'orange'),
-            report_summary_card('Current Outstanding', $summary['vehicles_with_outstanding'] ?? 0, 'red'),
+            report_count_card('Total Vehicles', $summary['total_vehicles'] ?? 0, 'blue'),
+            report_count_card('Active Vehicles', $summary['active_vehicles'] ?? 0, 'green'),
+            report_count_card('Vehicles In Service', $summary['vehicles_in_service'] ?? 0, 'orange'),
+            report_count_card('Current Outstanding', $summary['vehicles_with_outstanding'] ?? 0, 'red'),
         ];
         $columns = ['vehicle_number' => 'Vehicle Number', 'customer_name' => 'Customer', 'make_model' => 'Make / Model', 'total_job_cards' => 'Total Job Cards', 'last_service_date' => 'Last Service Date', 'total_charges' => 'Total Charges', 'current_outstanding' => 'Current Outstanding'];
         $sql = 'SELECT
@@ -936,30 +979,35 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $baseWhere[] = 'j.status = :job_status';
             $params['job_status'] = $filters['job_status'];
         }
+        $summaryParams = $params;
+        unset($summaryParams['date_from'], $summaryParams['date_to']);
         $summary = report_sql_rows(
             'SELECT
                 COUNT(DISTINCT e.id) AS total_mechanics,
                 SUM(j.mechanic_id IS NOT NULL) AS assigned_jobs,
                 SUM(j.status = "completed") AS completed_jobs,
-                SUM(j.status = "ongoing") AS ongoing_jobs
+                SUM(j.status = "ongoing") AS ongoing_jobs,
+                COALESCE(AVG(CASE WHEN perf.end_time > perf.start_time THEN TIMESTAMPDIFF(SECOND, perf.start_time, perf.end_time) / 60 ELSE NULL END), 0) AS average_completion_time
             FROM employees e
             LEFT JOIN job_cards j ON j.mechanic_id = e.id
+            LEFT JOIN job_card_performance perf ON perf.mechanic_id = e.id AND perf.job_card_id = j.id
             WHERE e.status = "active" AND ' . implode(' AND ', array_filter($baseWhere, static fn($item) => !str_starts_with($item, 'DATE(j.created_at)'))),
-            $params
+            $summaryParams
         )[0] ?? [];
         $cards = [
-            report_summary_card('Total Mechanics', $summary['total_mechanics'] ?? 0, 'blue'),
-            report_summary_card('Assigned Jobs', $summary['assigned_jobs'] ?? 0, 'green'),
-            report_summary_card('Completed Jobs', $summary['completed_jobs'] ?? 0, 'orange'),
-            report_summary_card('Ongoing Jobs', $summary['ongoing_jobs'] ?? 0, 'red'),
+            report_count_card('Total Mechanics', $summary['total_mechanics'] ?? 0, 'blue'),
+            report_count_card('Assigned Jobs', $summary['assigned_jobs'] ?? 0, 'green'),
+            report_count_card('Completed Jobs', $summary['completed_jobs'] ?? 0, 'orange'),
+            report_count_card('Ongoing Jobs', $summary['ongoing_jobs'] ?? 0, 'red'),
+            ['label' => 'Average Completion Time', 'value' => report_duration_display($summary['average_completion_time'] ?? 0), 'tone' => 'purple', 'currency' => false],
         ];
-        $columns = ['name' => 'Mechanic', 'assigned_jobs' => 'Assigned Jobs', 'completed_jobs' => 'Completed Jobs', 'ongoing_jobs' => 'Ongoing Jobs', 'average_completion_time' => 'Average Completion Time', 'service_job_value' => 'Service / Job Value'];
+        $columns = ['employee_code' => 'Code', 'name' => 'Mechanic', 'role_position' => 'Role', 'assigned_jobs' => 'Assigned Jobs', 'completed_jobs' => 'Completed Jobs', 'ongoing_jobs' => 'Ongoing Jobs', 'average_completion_time' => 'Average Completion Time', 'service_job_value' => 'Service / Job Value'];
         $sql = 'SELECT
-                e.id, e.name,
+                e.id, e.employee_code, e.name, e.role_position,
                 COUNT(DISTINCT j.id) AS assigned_jobs,
                 SUM(j.status = "completed") AS completed_jobs,
                 SUM(j.status = "ongoing") AS ongoing_jobs,
-                COALESCE(AVG(perf.duration_minutes), 0) AS average_completion_time,
+                COALESCE(AVG(CASE WHEN perf.end_time > perf.start_time THEN TIMESTAMPDIFF(SECOND, perf.start_time, perf.end_time) / 60 ELSE NULL END), 0) AS average_completion_time,
                 COALESCE(SUM(j.total_amount), 0) AS service_job_value
             FROM employees e
             LEFT JOIN job_cards j ON j.mechanic_id = e.id
@@ -968,6 +1016,10 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             GROUP BY e.id';
         $totalRows = report_count_rows($sql, $params);
         $rows = report_page_rows($sql . ' ORDER BY e.name ASC', $params, $page, $limit);
+        foreach ($rows as &$row) {
+            $row['average_completion_time'] = report_duration_display($row['average_completion_time'] ?? 0);
+        }
+        unset($row);
     } elseif ($section === 'reports-bays') {
         $baseWhere = ['1=1'];
         if ($filters['bay_id'] > 0) {
@@ -989,10 +1041,10 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $params
         )[0] ?? [];
         $cards = [
-            report_summary_card('Total Bays', $summary['total_bays'] ?? 0, 'blue'),
-            report_summary_card('Available', $summary['available_bays'] ?? 0, 'green'),
-            report_summary_card('Occupied', $summary['occupied_bays'] ?? 0, 'orange'),
-            report_summary_card('Maintenance', $summary['maintenance_bays'] ?? 0, 'red'),
+            report_count_card('Total Bays', $summary['total_bays'] ?? 0, 'blue'),
+            report_count_card('Available', $summary['available_bays'] ?? 0, 'green'),
+            report_count_card('Occupied', $summary['occupied_bays'] ?? 0, 'orange'),
+            report_count_card('Maintenance', $summary['maintenance_bays'] ?? 0, 'red'),
         ];
         $columns = ['bay_name' => 'Bay', 'total_jobs' => 'Total Jobs', 'completed_jobs' => 'Completed Jobs', 'ongoing_jobs' => 'Ongoing Jobs', 'average_job_time' => 'Average Job Time', 'status_label' => 'Current Status'];
         $sql = 'SELECT
@@ -1000,7 +1052,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
                 COUNT(DISTINCT j.id) AS total_jobs,
                 SUM(j.status = "completed") AS completed_jobs,
                 SUM(j.status = "ongoing") AS ongoing_jobs,
-                COALESCE(AVG(perf.duration_minutes), 0) AS average_job_time
+                COALESCE(AVG(CASE WHEN perf.end_time > perf.start_time THEN TIMESTAMPDIFF(SECOND, perf.start_time, perf.end_time) / 60 ELSE NULL END), 0) AS average_job_time
             FROM bays b
             LEFT JOIN job_cards j ON j.bay_name = b.bay_name
             LEFT JOIN job_card_performance perf ON perf.job_card_id = j.id
@@ -1010,6 +1062,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         $rows = report_page_rows($sql . ' ORDER BY b.bay_name ASC', $params, $page, $limit);
         foreach ($rows as &$row) {
             $row['status_label'] = ucfirst((string) $row['status']);
+            $row['average_job_time'] = report_duration_display($row['average_job_time'] ?? 0);
         }
         unset($row);
     } elseif ($section === 'reports-payments') {
@@ -1054,7 +1107,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         ];
         $columns = ['receipt_no' => 'Receipt No', 'payment_date' => 'Date / Time', 'invoice_no' => 'Invoice No', 'customer_name' => 'Customer', 'payment_method' => 'Payment Method', 'amount_received' => 'Amount Received', 'amount_applied' => 'Amount Applied', 'change_given' => 'Change Given', 'remaining_balance' => 'Remaining Balance', 'received_by' => 'Received By'];
         $sql = 'SELECT
-                p.id, p.receipt_no, p.payment_date, i.invoice_no, COALESCE(c.name, "Walk-in Customer") AS customer_name, p.payment_method,
+                p.id, p.payment_no AS receipt_no, p.payment_date, i.invoice_no, COALESCE(c.name, "Walk-in Customer") AS customer_name, p.payment_method,
                 p.amount_received, p.amount_applied, p.change_given, i.balance_amount AS remaining_balance,
                 COALESCE(u.name, "-") AS received_by
             FROM invoice_payments p
@@ -1119,7 +1172,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             'SELECT COALESCE(SUM(eep.total_cost),0)
              FROM expense_external_parts eep
              JOIN expenses e ON e.id = eep.expense_id
-             WHERE e.expense_type = "external_part" AND e.expense_date BETWEEN :from_date AND :to_date',
+             WHERE e.expense_type = "external_part" AND e.status <> "cancelled" AND e.expense_date BETWEEN :from_date AND :to_date',
             ['from_date' => $dateFrom, 'to_date' => $dateTo]
         );
         $operatingExpenses = report_sql_value(
@@ -1128,22 +1181,21 @@ function report_build(string $section, array $filters, bool $exportAll = false):
              WHERE expense_type = "general" AND status <> "cancelled" AND expense_date BETWEEN :from_date AND :to_date',
             ['from_date' => $dateFrom, 'to_date' => $dateTo]
         );
-        $grossProfit = $sales - $fifoCost;
-        $netProfit = $grossProfit + $otherIncome - $operatingExpenses;
+        $totalIncome = $sales + $otherIncome;
+        $totalExpenses = $fifoCost + $operatingExpenses;
+        // Gross profit is the final amount after every recorded income and expense.
+        $grossProfit = $totalIncome - $totalExpenses;
         $cards = [
             report_summary_card('Sales Revenue', $sales, 'blue'),
             report_summary_card('Cost of Parts', $fifoCost, 'red'),
             report_summary_card('Gross Profit', $grossProfit, 'green'),
             report_summary_card('Other Income', $otherIncome, 'orange'),
-            report_summary_card('Total Expenses', $operatingExpenses, 'purple'),
-            report_summary_card('Net Profit', $netProfit, 'navy'),
+            report_summary_card('Total Expenses', $totalExpenses, 'purple'),
         ];
         $chart = report_svg_bars([
-            ['label' => 'Sales', 'value' => $sales, 'color' => '#155eef'],
-            ['label' => 'Cost', 'value' => $fifoCost, 'color' => '#f04438'],
-            ['label' => 'Expenses', 'value' => $operatingExpenses, 'color' => '#f79009'],
-            ['label' => 'Other Income', 'value' => $otherIncome, 'color' => '#7f56d9'],
-            ['label' => 'Net Profit', 'value' => $netProfit, 'color' => '#12b76a'],
+            ['label' => 'Total Income', 'value' => $totalIncome, 'color' => '#155eef'],
+            ['label' => 'Total Expenses', 'value' => $totalExpenses, 'color' => '#f04438'],
+            ['label' => 'Gross Profit', 'value' => $grossProfit, 'color' => '#12b76a'],
         ]);
         $columns = [
             'label' => 'Category',
@@ -1157,7 +1209,9 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             ['label' => 'Other Income', 'amount' => report_money($otherIncome)],
             ['label' => 'Parts Cost', 'amount' => report_money($fifoCost)],
             ['label' => 'General Expenses', 'amount' => report_money($operatingExpenses)],
-            ['label' => 'Net Profit', 'amount' => report_money($netProfit)],
+            ['label' => 'Total Income', 'amount' => report_money($totalIncome)],
+            ['label' => 'Total Expenses', 'amount' => report_money($totalExpenses)],
+            ['label' => 'Gross Profit', 'amount' => report_money($grossProfit)],
         ];
         $totalRows = count($rows);
         $limit = 100;
@@ -1170,8 +1224,12 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             ]],
             ['section' => 'Other Income', 'items' => [['label' => 'Other Income', 'value' => $otherIncome]]],
             ['section' => 'Cost', 'items' => [['label' => 'Parts Cost', 'value' => $fifoCost]]],
-            ['section' => 'Expenses', 'items' => [['label' => 'General Expenses', 'value' => $operatingExpenses]]],
-            ['section' => 'Net Profit', 'items' => [['label' => 'Net Profit', 'value' => $netProfit]]],
+            ['section' => 'Expenses', 'items' => [
+                ['label' => 'Parts Cost', 'value' => $fifoCost],
+                ['label' => 'General Expenses', 'value' => $operatingExpenses],
+                ['label' => 'Total Expenses', 'value' => $totalExpenses],
+            ]],
+            ['section' => 'Gross Profit', 'items' => [['label' => 'Gross Profit', 'value' => $grossProfit]]],
         ];
         if ($section === 'reports-today-profit') {
             $extra['mini_tables'] = [

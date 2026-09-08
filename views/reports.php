@@ -17,6 +17,9 @@ if (!function_exists('report_cell_display')) {
         if ($value === null || $value === '') {
             return '';
         }
+        if (is_numeric($value) && preg_match('/^(total_vehicles|total_jobs|total_invoices|items_count|total_cards|pending_cards|ongoing_cards|completed_cards|cancelled_cards|total_items|in_stock|low_stock|out_stock|total_customers|new_customers|active_customers|total_bays|available_bays|occupied_bays|maintenance_bays)$/i', $key)) {
+            return number_format((float) $value, 0);
+        }
         if (is_numeric($value) && preg_match('/(amount|total|balance|outstanding|cost|price|charge|value|revenue|expense|income|due|paid|change|qty|quantity|average)/i', $key)) {
             return number_format((float) $value, 2);
         }
@@ -386,7 +389,7 @@ if ($isSalesReport) {
             <div class="admin-kpi report-kpi report-tone-<?= e($card['tone'] ?: 'blue') ?>">
                 <?php if ($isSalesReport): ?><span class="report-kpi-icon">*</span><?php endif; ?>
                 <div><span><?= e($card['label']) ?></span>
-                <strong>Rs. <?= e($card['value']) ?></strong>
+                <strong><?= ($card['currency'] ?? true) ? 'Rs. ' : '' ?><?= e($card['value']) ?></strong>
                 <?php if ($isSalesReport): ?><small>Current selected period</small><?php endif; ?></div>
             </div>
         </div>
