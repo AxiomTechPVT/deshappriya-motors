@@ -52,6 +52,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!bay.value) bay.focus(); else mechanic.focus();
             }
         });
+        const complaintField = jobForm.querySelector('[name="complaint"]');
+        const workField = jobForm.querySelector('[name="requested_work"]');
+        const isNewJobCard = new URLSearchParams(window.location.search).get('section') === 'jobcards-new';
+        if (isNewJobCard && complaintField && !jobForm.querySelector('[name="primary_service_id"]')) {
+            const serviceRow = document.createElement('div');
+            serviceRow.className = 'job-service-picker';
+            serviceRow.innerHTML = '<label class="form-label">Service / Complaint <input class="form-control" id="primary-service-input" list="saved-job-services" placeholder="Select a saved service or type a custom service"></label><datalist id="saved-job-services"></datalist><label class="form-label service-custom-price">Price (Rs.) <input class="form-control" type="number" name="primary_service_price" value="0" min="0" step="0.01"></label><small>Choose a saved service or type your own service in the same field. Saved prices fill automatically.</small><input type="hidden" name="primary_service_id" value=""><input type="hidden" name="primary_service_name" value="">';
+            complaintField.closest('.col-md-5')?.prepend(serviceRow);
+            const serviceInput = serviceRow.querySelector('#primary-service-input');
+            const serviceList = serviceRow.querySelector('datalist');
+            const servicePrice = serviceRow.querySelector('[name="primary_service_price"]');
+            fetch('index.php?page=admin&section=jobcards-services').then((response) => response.json()).then((services) => {
+                services.forEach((service) => {
+                    const option = document.createElement('option');
+                    option.value = service.service_name;
+                    option.label = service.service_code + ' - Rs. ' + Number(service.price || 0).toFixed(2);
+                    serviceList.appendChild(option);
+                });
+                serviceInput.addEventListener('input', () => {
+                    const value = serviceInput.value.trim().toLowerCase();
+                    const service = services.find((item) => item.service_name.toLowerCase() === value || item.service_code.toLowerCase() === value);
+                    const hiddenId = serviceRow.querySelector('[name="primary_service_id"]');
+                    const hiddenName = serviceRow.querySelector('[name="primary_service_name"]');
+                    if (service) {
+                        hiddenId.value = service.id;
+                        hiddenName.value = '';
+                        servicePrice.value = Number(service.price || 0).toFixed(2);
+                        if (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true') { complaintField.value = service.description || service.service_name; complaintField.dataset.serviceAutofill = 'true'; }
+                        if (workField && (!workField.value.trim() || workField.dataset.serviceAutofill === 'true')) { workField.value = service.service_name; workField.dataset.serviceAutofill = 'true'; }
+                    } else {
+                        hiddenId.value = '';
+                        hiddenName.value = serviceInput.value.trim();
+                        if (serviceInput.value.trim() && (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true')) { complaintField.value = serviceInput.value.trim(); complaintField.dataset.serviceAutofill = 'true'; }
+                    }
+                });
+            }).catch(() => {});
+            complaintField.addEventListener('input', () => { complaintField.dataset.serviceAutofill = 'false'; });
+            workField?.addEventListener('input', () => { workField.dataset.serviceAutofill = 'false'; });
+        }
     }
     document.querySelectorAll('form[action*="section=jobcards-action"]').forEach((form) => {
         if (form.closest('.job-start-screen')) return;
@@ -79,14 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const csrf = document.querySelector('input[name="csrf_token"]');
         document.querySelectorAll('.jobcard-list-table .job-row-actions').forEach((actions) => {
             const view = actions.querySelector('a[href*="section=jobcards-view"]');
-            if (!view || !csrf || actions.querySelector('[data-job-edit]')) return;
+            if (!view || !csrf || actions.querySelector('.job-cancel-button')) return;
             const id = new URL(view.href).searchParams.get('id');
             if (!id) return;
-            const edit = document.createElement('a');
-            edit.className = 'btn btn-light btn-sm';
-            edit.href = 'index.php?page=admin&section=jobcards-edit&id=' + encodeURIComponent(id);
-            edit.dataset.jobEdit = 'true';
-            edit.textContent = 'Edit';
             const cancel = document.createElement('form');
             cancel.method = 'post';
             cancel.action = 'index.php?page=admin&section=jobcards-action';
@@ -94,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cancel.addEventListener('submit', (event) => {
                 if (!window.confirm('Cancel this pending job card?')) event.preventDefault();
             });
-            actions.append(edit, cancel);
+            actions.append(cancel);
         });
     }
     const manualPartButton = document.querySelector('[data-add-manual]');
@@ -351,5 +385,30 @@ document.addEventListener('DOMContentLoaded', () => {
         addCustomerButton.href = 'index.php?page=admin&section=customers-add';
         addCustomerButton.textContent = '+ Add New Customer';
         customerField.parentElement.appendChild(addCustomerButton);
+    }
+
+    const serviceModal = document.querySelector('[data-edit-service-modal]');
+    const openServiceModal = document.querySelector('[data-open-edit-service]');
+    if (serviceModal && openServiceModal) {
+        const closeServiceModal = () => {
+            serviceModal.hidden = true;
+            document.body.classList.remove('modal-open');
+        };
+        openServiceModal.addEventListener('click', () => {
+            serviceModal.hidden = false;
+            document.body.classList.add('modal-open');
+        });
+        serviceModal.querySelectorAll('[data-close-edit-service]').forEach((button) => button.addEventListener('click', closeServiceModal));
+        serviceModal.addEventListener('click', (event) => {
+            if (event.target === serviceModal) closeServiceModal();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !serviceModal.hidden) closeServiceModal();
+        });
+    }
+
+    const stockNote = document.querySelector('.preview-note p');
+    if (stockNote && stockNote.textContent.includes('deducted from stock')) {
+        stockNote.textContent = 'Parts are reserved from stock when added. Removing a part returns it to stock.';
     }
 });
