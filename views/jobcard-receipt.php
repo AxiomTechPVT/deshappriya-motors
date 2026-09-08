@@ -3,7 +3,7 @@
         <h1>Payment Receipt <span class="job-status-pill"><?= (float)$payment['balance_amount'] > 0.009 ? 'DUE' : 'PAID' ?></span></h1>
         <nav class="job-breadcrumb"><a href="index.php?page=admin">Dashboard</a><span>›</span><a href="index.php?page=admin&amp;section=jobcards-ongoing">Ongoing Job Cards</a><span>›</span><strong><?= e($payment['receipt_no']) ?></strong></nav>
     </div>
-    <button class="btn btn-primary" type="button" onclick="window.print()">Print 88mm Receipt</button>
+    <button class="btn btn-primary" type="button" data-print-complete>Print &amp; Complete</button>
 </div>
 <section class="admin-panel job-receipt-card thermal-receipt">
     <div class="receipt-brand">
@@ -30,3 +30,11 @@
     <?php if (!empty($receiptSettings['receipt_footer'])): ?><div class="receipt-custom-text receipt-footer-text"><?= nl2br(e($receiptSettings['receipt_footer'])) ?></div><?php endif; ?><p class="receipt-thanks">Thank you for choosing <?= e($receiptSettings['garage_name'] ?? 'Deshappriya Motors') ?>.</p>
 </section>
 <div class="receipt-actions no-print"><a class="btn btn-light" href="index.php?page=admin&amp;section=jobcards-view&amp;id=<?= (int)$payment['job_card_id'] ?>">Back to Job Card</a><a class="btn btn-primary" href="index.php?page=admin&amp;section=jobcards-completed">Completed Job Cards</a></div>
+<script>
+document.querySelector('[data-print-complete]')?.addEventListener('click', function () {
+    var completedUrl = 'index.php?page=admin&section=jobcards-completed';
+    var goToCompleted = function () { window.location.href = completedUrl; };
+    window.addEventListener('afterprint', goToCompleted, { once: true });
+    window.print();
+});
+</script>

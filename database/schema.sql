@@ -529,6 +529,19 @@ CREATE TABLE IF NOT EXISTS job_card_items (
     CONSTRAINT job_card_items_service_fk FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS job_card_service_charges (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    job_card_id BIGINT UNSIGNED NOT NULL,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY job_card_service_charge_unique (job_card_id),
+    CONSTRAINT job_card_service_charge_card_fk FOREIGN KEY (job_card_id) REFERENCES job_cards(id) ON DELETE CASCADE,
+    CONSTRAINT job_card_service_charge_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS job_card_payments (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     job_card_id BIGINT UNSIGNED NOT NULL,

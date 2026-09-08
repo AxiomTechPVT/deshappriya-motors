@@ -320,7 +320,8 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
                 $stockStatement = $pdo->prepare('SELECT stock_qty FROM stock_items WHERE id=:id FOR UPDATE');
                 $stockStatement->execute(['id'=>$stockId]);
                 if ($quantity > (float)$stockStatement->fetchColumn() + 0.00001) throw new RuntimeException('Insufficient stock for one or more selected parts.');
-                consume_stock_fifo((int)$stockId, (float)$quantity, 'sale', $invoiceId, current_user()['id'] ?? null, 'Quick invoice ' . $invoiceNo, $pdo);
+            $userId = isset(current_user()['id']) ? (int) current_user()['id'] : null;
+            consume_stock_fifo((int)$stockId, (float)$quantity, 'sale', $invoiceId, $userId, 'Quick invoice ' . $invoiceNo, $pdo);
             }
         }
         $invoice = ['id'=>$invoiceId, 'job_card_id'=>$type === 'job_card' ? $jobId : null, 'customer_id'=>$customerId ?: null];
