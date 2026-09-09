@@ -45,13 +45,13 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
 
     <div class="dashboard-kpis">
         <?php foreach ([
-            ['Today\'s Sales', $currency($dashboard['sales']), 'Finalized invoice revenue', 'is-blue', '$'],
-            ['Today\'s Payments', $currency($dashboard['payments']), 'Amount applied to invoices', 'is-green', '='],
-            ['Pending Payments', $currency($dashboard['pending']), 'Current invoice balance', 'is-orange', '!'],
-            ['Ongoing Jobs', number_format($dashboard['ongoing']), 'Jobs in progress now', 'is-purple', 'W'],
-            ['Completed Jobs', number_format($dashboard['completed']), 'Completed in selected period', 'is-teal', 'V'],
-            ['Low Stock Items', number_format($dashboard['low_stock']), 'At or below reorder level', 'is-red', 'Q'],
-        ] as $kpi): ?><article class="dashboard-kpi <?= $kpi[3] ?>"><span class="dashboard-kpi-icon"><?= e($kpi[4]) ?></span><div><small><?= e($kpi[0]) ?></small><strong><?= e($kpi[1]) ?></strong><span><?= e($kpi[2]) ?></span></div></article><?php endforeach; ?>
+            ['Today\'s Sales', $currency($dashboard['sales']), 'Finalized invoice revenue', 'is-blue', '$', 'index.php?page=admin&section=reports-sales'],
+            ['Today\'s Payments', $currency($dashboard['payments']), 'Amount applied to invoices', 'is-green', '=', 'index.php?page=admin&section=reports-payments'],
+            ['Pending Payments', $currency($dashboard['pending']), 'Current invoice balance', 'is-orange', '!', 'index.php?page=admin&section=invoices'],
+            ['Ongoing Jobs', number_format($dashboard['ongoing']), 'Jobs in progress now', 'is-purple', 'W', 'index.php?page=admin&section=jobcards-ongoing'],
+            ['Completed Jobs', number_format($dashboard['completed']), 'Completed in selected period', 'is-teal', 'V', 'index.php?page=admin&section=jobcards-completed'],
+            ['Low Stock Items', number_format($dashboard['low_stock']), 'At or below reorder level', 'is-red', 'Q', 'index.php?page=admin&section=stock-low'],
+        ] as $kpi): ?><a class="dashboard-kpi dashboard-kpi-link <?= $kpi[3] ?>" href="<?= e($kpi[5]) ?>"><span class="dashboard-kpi-icon"><?= e($kpi[4]) ?></span><div><small><?= e($kpi[0]) ?></small><strong><?= e($kpi[1]) ?></strong><span><?= e($kpi[2]) ?></span></div></a><?php endforeach; ?>
     </div>
 
     <div class="dashboard-chart-grid">
