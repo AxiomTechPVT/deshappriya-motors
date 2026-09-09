@@ -66,6 +66,11 @@ function handle_employee_request(string $section): void
     ensure_employee_tables(); $errors=[]; $employeeId=(int)($_GET['id']??$_POST['employee_id']??0); $employee=$employeeId>0?employee_find($employeeId):null;
     if(in_array($section,['employees-view','employees-edit','employees-delete'],true)&&!$employee){ http_response_code(404); exit('Employee not found.'); }
     if($section==='employees-attendance'){
+        $isCashier = (current_user()['role'] ?? '') === 'cashier';
+        if($isCashier && (isset($_GET['attendance_edit_id']) || (int)($_POST['attendance_id'] ?? 0) > 0 || (($_POST['attendance_action'] ?? '') === 'delete'))){
+            flash('error','Cashiers can view and mark attendance, but cannot edit or delete attendance records.');
+            redirect('index.php?page=admin&section=employees-attendance');
+        }
         $attendanceId=(int)($_GET['attendance_edit_id']??$_GET['attendance_view_id']??$_POST['attendance_id']??0); $attendanceEdit=$attendanceId>0?attendance_find($attendanceId):null; if($attendanceEdit)$employeeId=(int)$attendanceEdit['employee_id'];
         if($attendanceId>0&&!$attendanceEdit){http_response_code(404);exit('Attendance record not found.');}
         if($_SERVER['REQUEST_METHOD']==='POST'&&($_POST['attendance_action']??'')==='delete'){
@@ -147,6 +152,7 @@ function handle_employee_request(string $section): void
         if(!$errors){$s=database()->prepare('UPDATE employee_loans SET employee_id=:employee_id,loan_date=:loan_date,amount=:amount,balance=:balance,reason=:reason,status=:status WHERE id=:id');$s->execute(['id'=>$loanId,'employee_id'=>$employeeId,'loan_date'=>$loanDate,'amount'=>$loanAmount,'balance'=>$loanAmount,'reason'=>trim((string)($_POST['reason']??''))?:null,'status'=>in_array($_POST['status']??'active',['active','settled'],true)?$_POST['status']:'active']);flash('success','Loan record updated successfully.');redirect('index.php?page=admin&section=employees-loans');}
     }
     $advanceId=(int)($_GET['advance_edit_id']??$_GET['advance_view_id']??$_POST['advance_id']??0); $advanceEdit=$advanceId>0?employee_advance_find($advanceId):null;
+    if($section==='employees-advances'&&current_user()['role']==='cashier'&&(isset($_GET['advance_edit_id'])||($_POST['advance_action']??'')==='delete'||($_SERVER['REQUEST_METHOD']==='POST'&&$advanceId>0))){flash('error','Cashiers cannot edit or delete employee advances.');redirect('index.php?page=admin&section=employees-advances');}
     if($section==='employees-advances'&&$advanceId>0&&!$advanceEdit){http_response_code(404);exit('Advance record not found.');}
     if($section==='employees-advances'&&$_SERVER['REQUEST_METHOD']==='POST'&&($_POST['advance_action']??'')==='delete'){
         verify_csrf(); $s=database()->prepare('DELETE FROM employee_advances WHERE id=:id'); $s->execute(['id'=>(int)$_POST['advance_id']]); flash('success','Advance record deleted.'); redirect('index.php?page=admin&section=employees-advances');

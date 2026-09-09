@@ -6,10 +6,11 @@ $cashierMenu = [
     'Vehicles' => ['vehicles', 'vehicles-add'],
     'Job Cards' => ['jobcards-new', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed'],
     'Estimates' => ['estimates'],
-    'Cashier' => ['invoices', 'invoices-quick', 'reports-payments'],
+    'Cashier' => ['invoices-mine', 'invoices', 'invoices-quick', 'reports-payments'],
     'Expenses' => ['expenses'],
     'Other Income' => ['other-income'],
     'Employee Advance' => ['employees-advances'],
+    'Employee Attendance' => ['employees-attendance'],
     'Stock / Parts' => ['stock', 'stock-low'],
     'Services' => ['services'],
     'Appointments' => ['appointments'],
@@ -18,12 +19,12 @@ $cashierLabels = [
     'dashboard' => 'Dashboard', 'customers' => 'All Customers', 'customers-add' => 'Add Customer',
     'vehicles' => 'All Vehicles', 'vehicles-add' => 'Add Vehicle', 'jobcards-new' => 'New Job Card', 'jobcards-pending' => 'Pending Job Cards',
     'jobcards-ongoing' => 'Ongoing Job Cards', 'jobcards-completed' => 'Completed Job Cards',
-    'estimates' => 'Estimates', 'invoices' => 'Invoice List', 'invoices-quick' => 'Quick Invoice',
+    'estimates' => 'Estimates', 'invoices-mine' => 'My Invoices', 'invoices' => 'Invoice List', 'invoices-quick' => 'Quick Invoice',
     'reports-payments' => 'Payment History', 'expenses' => 'Expense List', 'other-income' => 'Other Income',
-    'employees-advances' => 'Employee Advance', 'stock' => 'Stock List', 'stock-low' => 'Low Stock',
+    'employees-advances' => 'Employee Advance', 'employees-attendance' => 'Attendance', 'stock' => 'Stock List', 'stock-low' => 'Low Stock',
     'services' => 'Services', 'appointments' => 'Appointments',
 ];
-$cashierIcons = ['Dashboard' => '&#9632;', 'Customers' => '&#9787;', 'Vehicles' => '&#9638;', 'Job Cards' => '&#9881;', 'Estimates' => '&#9998;', 'Cashier' => '&#36;', 'Expenses' => '&#9888;', 'Other Income' => '&#43;', 'Employee Advance' => '&#9733;', 'Stock / Parts' => '&#9632;', 'Services' => '&#9881;', 'Appointments' => '&#128197;'];
+$cashierIcons = ['Dashboard' => '&#9632;', 'Customers' => '&#9787;', 'Vehicles' => '&#9638;', 'Job Cards' => '&#9881;', 'Estimates' => '&#9998;', 'Cashier' => '&#36;', 'Expenses' => '&#9888;', 'Other Income' => '&#43;', 'Employee Advance' => '&#9733;', 'Employee Attendance' => '&#128197;', 'Stock / Parts' => '&#9632;', 'Services' => '&#9881;', 'Appointments' => '&#128197;'];
 $cashierHref = static fn(string $item): string => $item === 'dashboard' ? 'index.php?page=cashier' : 'index.php?page=admin&section=' . rawurlencode($item);
 ?>
 <aside class="sidebar cashier-sidebar" data-sidebar>

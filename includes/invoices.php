@@ -120,6 +120,7 @@ function invoice_rows(array $filters = []): array
     }
     if (in_array($filters['type'] ?? '', ['job_card', 'quick'], true)) { $where[] = 'i.invoice_type=:type'; $params['type'] = $filters['type']; }
     if (in_array($filters['status'] ?? '', ['paid', 'partial', 'due'], true)) { $where[] = 'i.payment_status=:status'; $params['status'] = $filters['status']; }
+    if ((int)($filters['created_by'] ?? 0) > 0) { $where[] = 'i.created_by=:created_by'; $params['created_by'] = (int)$filters['created_by']; }
     if (($filters['date_from'] ?? '') !== '') { $where[] = 'i.invoice_date>=:date_from'; $params['date_from'] = $filters['date_from']; }
     if (($filters['date_to'] ?? '') !== '') { $where[] = 'i.invoice_date<=:date_to'; $params['date_to'] = $filters['date_to']; }
     $query = 'SELECT i.*,c.name AS customer_name,COALESCE(v.vehicle_number,i.vehicle_display_number) AS vehicle_number,j.job_card_no FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id LEFT JOIN vehicles v ON v.id=i.vehicle_id LEFT JOIN job_cards j ON j.id=i.job_card_id WHERE ' . implode(' AND ', $where) . ' ORDER BY i.id DESC';
@@ -353,14 +354,14 @@ function handle_invoice_request(string $section): void
 {
     invoice_ensure_tables();
     $id=max(0,(int)($_GET['id']??$_POST['invoice_id']??0));
-    if ($section==='invoices' || $section==='invoices-quick') {
+    if ($section==='invoices' || $section==='invoices-mine' || $section==='invoices-quick') {
         $errors = [];
-        if (in_array($section, ['invoices', 'invoices-quick'], true) && $_SERVER['REQUEST_METHOD']==='POST') {
+        if (in_array($section, ['invoices', 'invoices-mine', 'invoices-quick'], true) && $_SERVER['REQUEST_METHOD']==='POST') {
             verify_csrf();
             $invoiceId=invoice_create($_POST,($_POST['save_mode']??'save'),$errors);
-            if($invoiceId){flash('success','Invoice saved successfully.');redirect('index.php?page=admin&section=invoices');}
+            if($invoiceId){flash('success','Invoice saved successfully.');redirect('index.php?page=admin&section='.($section==='invoices-mine'?'invoices-mine':'invoices'));}
         }
-        $filters=['search'=>trim((string)($_GET['search']??'')),'type'=>$_GET['type']??'','status'=>$_GET['status']??'','date_from'=>trim((string)($_GET['date_from']??'')),'date_to'=>trim((string)($_GET['date_to']??''))];
+        $filters=['search'=>trim((string)($_GET['search']??'')),'type'=>$_GET['type']??'','status'=>$_GET['status']??'','date_from'=>trim((string)($_GET['date_from']??'')),'date_to'=>trim((string)($_GET['date_to']??'')),'created_by'=>$section==='invoices-mine'?(int)(current_user()['id']??0):0];
         $rows=invoice_rows($filters);
         $services=database()->query('SELECT id,service_name,price FROM services WHERE status="active" ORDER BY service_name')->fetchAll();
         $parts=database()->query('SELECT id,part_code,part_name,brand,selling_price,stock_qty FROM stock_items WHERE status="active" ORDER BY part_name')->fetchAll();
