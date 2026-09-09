@@ -67,6 +67,9 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .customer-name small { color:#667085; font-size:10px; }
 .customer-avatar { width:30px; height:30px; font-size:10px; }
 .type-badge,.status-badge { padding:4px 8px; font-size:9px; }
+.notification-dot { text-decoration:none; } .notification-dot.notification-active { background:#f04438; border-color:#f04438; color:#fff; box-shadow:0 0 0 4px rgba(240,68,56,.12); }
+.register-kpi.success { border-top:4px solid #12b76a; } .register-kpi.info { border-top:4px solid #155eef; } .register-kpi.danger { border-top:4px solid #f04438; } .register-kpi.warning { border-top:4px solid #f79009; } .register-kpi.primary { border-top:4px solid #7f56d9; } .status-success { background:#ecfdf3; color:#027a48; } .status-warning { background:#fffaeb; color:#b54708; } .status-pending { background:#f2f4f7; color:#344054; }
+.status-danger { background:#fef3f2; color:#b42318; }
 .action-links { gap:6px; }
 .action-links a,.action-links button { display:grid; place-items:center; width:26px; height:26px; border-radius:6px; background:#f8fafc; color:#155eef; font-size:15px; }
 .action-links form { display:inline-block; }
@@ -602,6 +605,7 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .cashier-user .other-income-table .action-links a[href*="other-income-edit"],.cashier-user .other-income-table .action-links form{display:none}
 .cashier-user .supplier-table .action-links a[href*="advance_edit_id"],.cashier-user .supplier-table .action-links form{display:none}
 .cashier-user .employee-record-panel .action-links a[href*="attendance_edit_id"],.cashier-user .employee-record-panel .action-links form{display:none}
+.cashier-user .service-actions a[href*="services-edit"],.cashier-user .service-actions form{display:none}
 .cashier-user .stock-table .action-links a[href*="stock-edit"],.cashier-user .stock-table .action-links form{display:none}
 .cashier-user .stock-list form[action*="stock-delete"]{display:none!important}
 /* Clickable dashboard summary cards */

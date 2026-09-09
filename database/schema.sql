@@ -50,6 +50,32 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
     CONSTRAINT `system_settings_user_fk` FOREIGN KEY (`updated_by`) REFERENCES users (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `cashier_registers` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `cashier_id` BIGINT UNSIGNED NOT NULL,
+    `register_date` DATE NOT NULL,
+    `opening_amount` DECIMAL(12,2) NOT NULL DEFAULT 0,
+    `actual_closing_amount` DECIMAL(12,2) NULL,
+    `expected_closing_amount` DECIMAL(12,2) NOT NULL DEFAULT 0,
+    `difference_amount` DECIMAL(12,2) NULL,
+    `status` ENUM('open','closed') NOT NULL DEFAULT 'open',
+    `handover_status` ENUM('not_submitted','pending','accepted','rejected') NOT NULL DEFAULT 'not_submitted',
+    `handover_amount` DECIMAL(12,2) NULL,
+    `handed_over_at` DATETIME NULL,
+    `accepted_amount` DECIMAL(12,2) NULL,
+    `accepted_by` BIGINT UNSIGNED NULL,
+    `accepted_at` DATETIME NULL,
+    `acceptance_note` VARCHAR(255) NULL,
+    `opened_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `closed_at` DATETIME NULL,
+    `notes` TEXT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `cashier_register_day_unique` (`cashier_id`, `register_date`),
+    KEY `cashier_register_date_index` (`register_date`),
+    CONSTRAINT `cashier_register_user_fk` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `cashier_register_accepted_by_fk` FOREIGN KEY (`accepted_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS suppliers (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     supplier_code VARCHAR(20) NOT NULL,

@@ -6,7 +6,7 @@ $cashierMenu = [
     'Vehicles' => ['vehicles', 'vehicles-add'],
     'Job Cards' => ['jobcards-new', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed'],
     'Estimates' => ['estimates'],
-    'Cashier' => ['invoices-mine', 'invoices', 'invoices-quick', 'reports-payments'],
+    'Cashier' => ['cashier-register', 'invoices-mine', 'invoices', 'invoices-quick', 'reports-payments'],
     'Expenses' => ['expenses'],
     'Other Income' => ['other-income'],
     'Employee Advance' => ['employees-advances'],
@@ -20,7 +20,7 @@ $cashierLabels = [
     'vehicles' => 'All Vehicles', 'vehicles-add' => 'Add Vehicle', 'jobcards-new' => 'New Job Card', 'jobcards-pending' => 'Pending Job Cards',
     'jobcards-ongoing' => 'Ongoing Job Cards', 'jobcards-completed' => 'Completed Job Cards',
     'estimates' => 'Estimates', 'invoices-mine' => 'My Invoices', 'invoices' => 'Invoice List', 'invoices-quick' => 'Quick Invoice',
-    'reports-payments' => 'Payment History', 'expenses' => 'Expense List', 'other-income' => 'Other Income',
+    'cashier-register' => 'Daily Cash Drawer', 'reports-payments' => 'Payment History', 'expenses' => 'Expense List', 'other-income' => 'Other Income',
     'employees-advances' => 'Employee Advance', 'employees-attendance' => 'Attendance', 'stock' => 'Stock List', 'stock-low' => 'Low Stock',
     'services' => 'Services', 'appointments' => 'Appointments',
 ];
