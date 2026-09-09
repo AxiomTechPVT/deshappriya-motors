@@ -16,7 +16,7 @@
     <?php if (($section ?? '') === 'jobcards-receipt'): ?><link href="assets/css/receipt-lines.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/receipt-lines.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (strpos((string) ($section ?? ''), 'invoices') === 0): ?><link href="assets/css/invoices.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/invoices.css') ?>" rel="stylesheet"><?php endif; ?>
 </head>
-<body>
+<body class="<?= $isAdmin ? 'admin-user' : 'cashier-user' ?>">
 <?php $referenceLayout = $isAdmin && (strpos((string) ($section ?? ''), 'customers') === 0 || strpos((string) ($section ?? ''), 'vehicles') === 0 || strpos((string) ($section ?? ''), 'suppliers') === 0 || strpos((string) ($section ?? ''), 'employees') === 0 || strpos((string) ($section ?? ''), 'jobcards') === 0); ?>
 <div class="app-shell <?= $referenceLayout ? 'customer-layout' : '' ?> <?= ($section ?? '') === 'vehicles' ? 'vehicle-list-page' : '' ?>">
     <?php require __DIR__ . ($isAdmin ? '/admin-sidebar.php' : '/sidebar.php'); ?>
