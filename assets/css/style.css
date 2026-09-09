@@ -595,6 +595,9 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 /* Data-driven chart segment overrides */
 .dashboard-donut{background:conic-gradient(#1769d1 0 var(--parts-end),#35b86b var(--parts-end) var(--services-end),#f79009 var(--services-end) var(--charges-end),#7f56d9 var(--charges-end) 100%)}
 .status-donut{background:conic-gradient(#1769d1 0 var(--pending-end),#f79009 var(--pending-end) var(--ongoing-end),#35b86b var(--ongoing-end) var(--completed-end),#ef3340 var(--completed-end) 100%)}
+/* Cashier navigation icons */
+.cashier-sidebar .nav-link span,.cashier-sidebar .nav-group summary span{display:inline-block;width:20px;margin-right:7px;color:#e63946;text-align:center}
+.cashier-user .estimate-actions form{display:none}
 /* Clickable dashboard summary cards */
 .dashboard-kpi-link{color:inherit;text-decoration:none;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}.dashboard-kpi-link:hover{color:inherit;border-color:#9fc4f5;box-shadow:0 6px 18px rgba(16,42,86,.1);transform:translateY(-2px)}
 /* Stable KPI sizing at dashboard breakpoints */
