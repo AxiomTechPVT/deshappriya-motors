@@ -114,7 +114,7 @@ if ($page === 'admin') {
     $user = current_user();
     $section = preg_replace('/[^a-z0-9_-]/i', '', $_GET['section'] ?? 'dashboard');
     if ($user['role'] === 'cashier') {
-        $cashierSections = ['customers', 'customers-add', 'vehicles', 'vehicles-add', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed', 'estimates', 'invoices-mine', 'invoices', 'invoices-quick', 'invoices-view', 'invoices-thermal', 'invoices-payment', 'invoices-receipt', 'reports-payments', 'cashier-register', 'cashier-advance-requests', 'expenses', 'expenses-add', 'expenses-view', 'other-income', 'other-income-add', 'other-income-view', 'employees-advances', 'employees-attendance', 'stock', 'stock-low', 'services', 'appointments'];
+        $cashierSections = ['customers', 'customers-add', 'vehicles', 'vehicles-add', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed', 'estimates', 'invoices-mine', 'invoices', 'invoices-quick', 'invoices-view', 'invoices-thermal', 'invoices-payment', 'invoices-receipt', 'reports-payments', 'cashier-register', 'cashier-advance-requests', 'expenses', 'expenses-add', 'expenses-view', 'other-income', 'other-income-add', 'other-income-view', 'employees-advances', 'employees-attendance', 'stock', 'stock-low', 'stock-add', 'stock-view', 'stock-restock', 'services', 'appointments'];
         // Customer list actions use the existing customer handlers for both roles.
         $customerActions = ['customers-view', 'customers-edit', 'customers-deactivate', 'customers-export'];
         // Vehicle list actions reuse the existing history, edit, and removal handlers.

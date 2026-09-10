@@ -773,3 +773,7 @@ body:has(.expense-view-backdrop) { overflow:hidden; }
 /* Keep the income list visible behind the income form. */
 .other-income-form-backdrop, .other-income-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
 body:has(.other-income-form-backdrop), body:has(.other-income-view-backdrop) { overflow:hidden; }
+
+/* Show the stock list behind its details modal. */
+.stock-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.stock-view-backdrop) { overflow:hidden; }

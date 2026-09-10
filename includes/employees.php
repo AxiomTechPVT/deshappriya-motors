@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/attendance-auto-checkout.php';
 
 function ensure_employee_tables(): void
 {
@@ -20,6 +21,7 @@ function ensure_employee_tables(): void
     if (!database()->query("SHOW COLUMNS FROM employee_advances LIKE 'balance'")->fetch()) { database()->exec("ALTER TABLE employee_advances ADD balance DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER amount"); database()->exec("UPDATE employee_advances SET balance=amount WHERE status='unsettled' AND balance=0"); }
     database()->exec("CREATE TABLE IF NOT EXISTS employee_loans (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, employee_id BIGINT UNSIGNED NOT NULL, loan_date DATE NOT NULL, amount DECIMAL(12,2) NOT NULL, installment DECIMAL(12,2) NOT NULL DEFAULT 0, balance DECIMAL(12,2) NOT NULL DEFAULT 0, reason VARCHAR(255) NULL, status ENUM('active','settled') NOT NULL DEFAULT 'active', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), CONSTRAINT employee_loans_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     database()->exec("CREATE TABLE IF NOT EXISTS employee_attendance (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, employee_id BIGINT UNSIGNED NOT NULL, attendance_date DATE NOT NULL, attendance_status ENUM('present','absent','leave','half_day') NOT NULL DEFAULT 'present', check_in TIME NULL, check_out TIME NULL, notes VARCHAR(255) NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id), UNIQUE KEY employee_attendance_day_unique (employee_id, attendance_date), KEY employee_attendance_date_index (attendance_date), KEY employee_attendance_status_index (attendance_status), CONSTRAINT employee_attendance_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    attendance_auto_checkout(database());
     $ready = true;
 }
 
@@ -69,12 +71,33 @@ function handle_employee_request(string $section): void
     }
     if(in_array($section,['employees-view','employees-edit','employees-delete'],true)&&!$employee){ http_response_code(404); exit('Employee not found.'); }
     if($section==='employees-attendance'){
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['attendance_action'] ?? '') === 'checkout') {
+            verify_csrf();
+            $checkoutId = (int) ($_POST['checkout_id'] ?? 0);
+            $record = attendance_find($checkoutId);
+            $automaticCheckout = ($_POST['checkout_mode'] ?? '') === 'now';
+            $checkout = $automaticCheckout
+                ? (new DateTimeImmutable('now', new DateTimeZone('Asia/Colombo')))->format('H:i:s')
+                : trim((string) ($_POST['check_out'] ?? ''));
+            if (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $checkout)) $checkout .= ':00';
+            if (!$record || !$record['check_in'] || $record['check_out'] || !in_array($record['attendance_status'], ['present', 'half_day'], true)) {
+                flash('error', 'Check out is available only for a checked-in employee who has not checked out yet.');
+            } elseif (!preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $checkout) || $checkout < $record['check_in']) {
+                flash('error', 'Check-out time cannot be earlier than check-in time.');
+                redirect('index.php?page=admin&section=employees-attendance' . ($automaticCheckout ? '' : '&attendance_checkout_id=' . $checkoutId));
+            } else {
+                $s = database()->prepare("UPDATE employee_attendance SET check_out=:check_out WHERE id=:id AND check_out IS NULL AND check_in IS NOT NULL AND check_in<=:checkout_limit AND attendance_status IN ('present','half_day')");
+                $s->execute(['check_out' => $checkout, 'id' => $checkoutId, 'checkout_limit' => $checkout]);
+                flash($s->rowCount() ? 'success' : 'error', $s->rowCount() ? 'Check-out time saved successfully.' : 'This attendance record has changed. Please check it again.');
+            }
+            redirect('index.php?page=admin&section=employees-attendance');
+        }
         $isCashier = (current_user()['role'] ?? '') === 'cashier';
         if($isCashier && (isset($_GET['attendance_edit_id']) || (int)($_POST['attendance_id'] ?? 0) > 0 || (($_POST['attendance_action'] ?? '') === 'delete'))){
             flash('error','Cashiers can view and mark attendance, but cannot edit or delete attendance records.');
             redirect('index.php?page=admin&section=employees-attendance');
         }
-        $attendanceId=(int)($_GET['attendance_edit_id']??$_GET['attendance_view_id']??$_POST['attendance_id']??0); $attendanceEdit=$attendanceId>0?attendance_find($attendanceId):null; if($attendanceEdit)$employeeId=(int)$attendanceEdit['employee_id'];
+        $attendanceId=(int)($_GET['attendance_edit_id']??$_GET['attendance_checkout_id']??$_GET['attendance_view_id']??$_POST['attendance_id']??0); $attendanceEdit=$attendanceId>0?attendance_find($attendanceId):null; if($attendanceEdit)$employeeId=(int)$attendanceEdit['employee_id'];
         if($attendanceId>0&&!$attendanceEdit){http_response_code(404);exit('Attendance record not found.');}
         if($_SERVER['REQUEST_METHOD']==='POST'&&($_POST['attendance_action']??'')==='delete'){
             verify_csrf(); $s=database()->prepare('DELETE FROM employee_attendance WHERE id=:id'); $s->execute(['id'=>(int)$_POST['attendance_id']]); flash('success','Attendance record deleted.'); redirect('index.php?page=admin&section=employees-attendance');
@@ -93,7 +116,7 @@ function handle_employee_request(string $section): void
                 redirect('index.php?page=admin&section=employees-attendance');
             }
         }
-        $attendanceFilters=attendance_filters(); $attendanceRows=attendance_rows($attendanceFilters); $attendanceModalRecord=$attendanceEdit; $attendanceModalType=isset($_GET['attendance_view_id'])?'view':(isset($_GET['attendance_edit_id'])?'edit':''); $title='Attendance'; $sectionForHeader=$section; require __DIR__.'/../includes/header.php'; require __DIR__.'/../views/employees.php'; if($attendanceModalType!=='')require __DIR__.'/../views/attendance-modal-'.$attendanceModalType.'.php'; require __DIR__.'/../includes/footer.php'; return;
+        $attendanceFilters=attendance_filters(); $attendanceRows=attendance_rows($attendanceFilters); $attendanceModalRecord=$attendanceEdit; $attendanceModalType=isset($_GET['attendance_checkout_id'])?'checkout':(isset($_GET['attendance_view_id'])?'view':(isset($_GET['attendance_edit_id'])?'edit':'')); $title='Attendance'; $sectionForHeader=$section; require __DIR__.'/../includes/header.php'; require __DIR__.'/../views/employees.php'; if($attendanceModalType!=='')require __DIR__.'/../views/attendance-modal-'.$attendanceModalType.'.php'; require __DIR__.'/../includes/footer.php'; return;
     }
     if($section==='employees-view' || ($section==='employees-edit' && $_SERVER['REQUEST_METHOD'] !== 'POST')){
         $input = $employee;
