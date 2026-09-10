@@ -59,6 +59,51 @@ if ($page === 'password') {
     $title = 'Account settings'; require __DIR__ . '/views/password.php'; exit;
 }
 
+if ($page === 'account') {
+    require_auth();
+    ensure_user_access_columns();
+    $user = current_user();
+    $errors = [];
+    $profileInput = ['name' => (string) ($user['name'] ?? ''), 'username' => (string) ($user['username'] ?? ''), 'email' => (string) ($user['email'] ?? ''), 'mobile' => (string) ($user['mobile'] ?? '')];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        verify_csrf();
+        $action = $_POST['account_action'] ?? '';
+        if ($action === 'profile') {
+            $profileInput['name'] = trim((string) ($_POST['name'] ?? ''));
+            $profileInput['email'] = strtolower(trim((string) ($_POST['email'] ?? '')));
+            $profileInput['mobile'] = trim((string) ($_POST['mobile'] ?? ''));
+            if ($profileInput['name'] === '') $errors[] = 'Full name is required.';
+            if ($profileInput['email'] !== '' && !filter_var($profileInput['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'Enter a valid email address.';
+            if ($profileInput['mobile'] !== '' && !preg_match('/^[0-9+() .-]{7,40}$/', $profileInput['mobile'])) $errors[] = 'Enter a valid mobile number.';
+            if (!$errors) {
+                $update = database()->prepare('UPDATE users SET name = :name, email = :email, mobile = :mobile WHERE id = :id');
+                $update->execute(['name' => $profileInput['name'], 'email' => $profileInput['email'] ?: null, 'mobile' => $profileInput['mobile'] ?: null, 'id' => $user['id']]);
+                flash('success', 'Your profile was updated successfully.');
+                redirect('index.php?page=account');
+            }
+        } elseif ($action === 'password') {
+            $current = (string) ($_POST['current_password'] ?? '');
+            $new = (string) ($_POST['password'] ?? '');
+            $confirm = (string) ($_POST['password_confirmation'] ?? '');
+            $statement = database()->prepare('SELECT password FROM users WHERE id = :id');
+            $statement->execute(['id' => $user['id']]);
+            if (!password_verify($current, (string) $statement->fetchColumn())) $errors[] = 'The current password is incorrect.';
+            if (strlen($new) < 8) $errors[] = 'The new password must be at least 8 characters.';
+            if ($new !== $confirm) $errors[] = 'The password confirmation does not match.';
+            if (!$errors) {
+                $update = database()->prepare('UPDATE users SET password = :password WHERE id = :id');
+                $update->execute(['password' => password_hash($new, PASSWORD_DEFAULT), 'id' => $user['id']]);
+                flash('success', 'Your password was changed successfully.');
+                redirect('index.php?page=account');
+            }
+        }
+    }
+    $section = 'account';
+    $title = 'Account settings';
+    require __DIR__ . '/views/account.php';
+    exit;
+}
+
 if ($page === 'dashboard') {
     require_auth();
     redirect('index.php?page=' . (current_user()['role'] === 'administrator' ? 'admin' : 'cashier'));
