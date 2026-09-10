@@ -727,3 +727,17 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .vehicle-update-confirm::backdrop { background:rgba(3,18,38,.48); }
 .vehicle-update-confirm h2 { font-size:20px; margin:0 0 12px; }
 .vehicle-update-confirm p { margin:0 0 20px; }
+
+.estimate-item-picker { position:relative; min-width:0; }
+.estimate-item-picker > input { width:100%; }
+.estimate-item-results { position:absolute; top:calc(100% + 4px); left:0; width:max(100%,280px); max-width:calc(100vw - 64px); max-height:240px; overflow-y:auto; z-index:50; border:1px solid #cbd5e1; border-radius:8px; background:#fff; box-shadow:0 8px 24px #10182826; }
+.estimate-item-results[hidden] { display:none; }
+.estimate-item-results button { display:block; width:100%; padding:10px 12px; border:0; border-bottom:1px solid #edf1f5; background:#fff; text-align:left; color:#102a56; min-height:44px; }
+.estimate-item-results button:hover,.estimate-item-results button[aria-selected="true"] { background:#eaf2ff; }
+.estimate-item-results strong,.estimate-item-results small { display:block; overflow-wrap:anywhere; }
+.estimate-item-results strong { font-size:13px; }
+.estimate-item-results small { margin-top:4px; font-size:11px; color:#667085; }
+.estimate-item-search-help { padding:10px 12px; background:#f8fafc; color:#667085; font-size:12px; line-height:1.5; }
+
+.estimate-form-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.estimate-form-backdrop) { overflow:hidden; }

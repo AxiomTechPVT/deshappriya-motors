@@ -119,7 +119,9 @@ if ($page === 'admin') {
         $customerActions = ['customers-view', 'customers-edit', 'customers-deactivate', 'customers-export'];
         // Vehicle list actions reuse the existing history, edit, and removal handlers.
         $vehicleActions = ['vehicles-view', 'vehicles-edit', 'vehicles-remove'];
-        $allowed = in_array($section, $cashierSections, true) || in_array($section, $customerActions, true) || in_array($section, $vehicleActions, true) || str_starts_with($section, 'invoices-') || str_starts_with($section, 'jobcards-');
+        // Estimate buttons and forms must reach their existing handlers for cashiers.
+        $estimateActions = ['estimates-add', 'estimates-view', 'estimates-edit', 'estimates-print', 'estimates-print-settings', 'estimates-status', 'estimates-delete'];
+        $allowed = in_array($section, $cashierSections, true) || in_array($section, $customerActions, true) || in_array($section, $vehicleActions, true) || in_array($section, $estimateActions, true) || str_starts_with($section, 'invoices-') || str_starts_with($section, 'jobcards-');
         if (!$allowed) {
             redirect('index.php?page=cashier');
         }
