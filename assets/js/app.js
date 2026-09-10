@@ -283,6 +283,40 @@ document.addEventListener('DOMContentLoaded', () => {
             actions.append(cancel);
         });
     }
+    document.querySelectorAll('.pending-jobs-friendly .job-row-actions').forEach((actions) => {
+        const view = actions.querySelector('a[href*="section=jobcards-view"]');
+        const edit = actions.querySelector('a[href*="section=jobcards-edit"]');
+        const remove = actions.querySelector('form[action*="section=jobcards-delete"]');
+        const cancel = actions.querySelector('.job-cancel-button')?.closest('form');
+        const start = actions.querySelector('input[name="action"][value="start"]')?.closest('form');
+        const ongoing = Boolean(actions.closest('.ongoing-jobs-friendly'));
+        if (ongoing && view) {
+            view.textContent = 'View';
+            if (edit) edit.textContent = 'Edit';
+            if (remove) remove.querySelector('button').textContent = 'Delete';
+            actions.classList.add('ongoing-actions-inline');
+            return;
+        }
+        if (!view || (!start && !ongoing) || actions.querySelector('.pending-action-menu')) return;
+        const menu = document.createElement('details');
+        menu.className = 'pending-action-menu';
+        const summary = document.createElement('summary');
+        summary.textContent = 'More actions';
+        menu.appendChild(summary);
+        if (edit) { edit.textContent = 'Edit job'; menu.appendChild(edit); }
+        if (cancel) { cancel.querySelector('button').textContent = 'Cancel job'; menu.appendChild(cancel); }
+        if (remove) { remove.querySelector('button').textContent = 'Delete job'; menu.appendChild(remove); }
+        view.textContent = ongoing ? 'Open job' : 'View';
+        if (start) {
+            start.querySelector('button').textContent = 'Start job';
+            actions.appendChild(start);
+        }
+        actions.append(view, menu);
+        actions.classList.add('pending-actions-compact');
+        menu.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') { menu.open = false; summary.focus(); }
+        });
+    });
     const manualPartButton = document.querySelector('[data-add-manual]');
     if (manualPartButton) {
         manualPartButton.addEventListener('click', () => {
