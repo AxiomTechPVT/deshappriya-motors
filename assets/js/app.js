@@ -172,6 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         jobForm.addEventListener('submit', (event) => {
             if (event.submitter && event.submitter.value === 'start' && (!bay.value || !mechanic.value || mechanic.value === '0')) {
                 event.preventDefault();
+                const moreDetails = bay.closest('details');
+                if (moreDetails) moreDetails.open = true;
                 alert('Select both a working bay and a mechanic before starting the job.');
                 if (!bay.value) bay.focus(); else mechanic.focus();
             }
@@ -182,36 +184,62 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isNewJobCard && complaintField && !jobForm.querySelector('[name="primary_service_id"]')) {
             const serviceRow = document.createElement('div');
             serviceRow.className = 'job-service-picker';
-            serviceRow.innerHTML = '<label class="form-label">Service / Complaint <input class="form-control" id="primary-service-input" list="saved-job-services" placeholder="Select a saved service or type a custom service"></label><datalist id="saved-job-services"></datalist><label class="form-label service-custom-price">Price (Rs.) <input class="form-control" type="number" name="primary_service_price" value="0" min="0" step="0.01"></label><small>Choose a saved service or type your own service in the same field. Saved prices fill automatically.</small><input type="hidden" name="primary_service_id" value=""><input type="hidden" name="primary_service_name" value="">';
+            serviceRow.innerHTML = '<div class="job-service-choice"><label class="form-label" for="primary-service-select">Service<select class="form-select" id="primary-service-select"><option value="">Select a service...</option><option value="custom">Other - type a service</option></select></label><label class="form-label" data-custom-service hidden>Service name<input class="form-control" id="primary-service-input" placeholder="Type the service you need" maxlength="190"></label></div><label class="form-label service-custom-price">Price (Rs.) <input class="form-control" type="number" name="primary_service_price" value="0" min="0" step="0.01"></label><small data-service-help>Select a saved service to fill its price. If it is not listed, choose Other.</small><input type="hidden" name="primary_service_id" value=""><input type="hidden" name="primary_service_name" value="">';
             complaintField.closest('.col-md-5')?.prepend(serviceRow);
+            const serviceSelect = serviceRow.querySelector('#primary-service-select');
             const serviceInput = serviceRow.querySelector('#primary-service-input');
-            const serviceList = serviceRow.querySelector('datalist');
+            const customField = serviceRow.querySelector('[data-custom-service]');
             const servicePrice = serviceRow.querySelector('[name="primary_service_price"]');
-            fetch('index.php?page=admin&section=jobcards-services').then((response) => response.json()).then((services) => {
+            const hiddenId = serviceRow.querySelector('[name="primary_service_id"]');
+            const hiddenName = serviceRow.querySelector('[name="primary_service_name"]');
+            let services = [];
+            const fillWork = (name, description) => {
+                if (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true') {
+                    complaintField.value = description || name;
+                    complaintField.dataset.serviceAutofill = 'true';
+                }
+                if (workField && (!workField.value.trim() || workField.dataset.serviceAutofill === 'true')) {
+                    workField.value = name;
+                    workField.dataset.serviceAutofill = 'true';
+                }
+            };
+            serviceSelect.addEventListener('change', () => {
+                const custom = serviceSelect.value === 'custom';
+                customField.hidden = !custom;
+                serviceInput.required = custom;
+                hiddenId.value = '';
+                hiddenName.value = custom ? serviceInput.value.trim() : '';
+                servicePrice.value = '0';
+                const service = services.find((item) => String(item.id) === serviceSelect.value);
+                if (service) {
+                    hiddenId.value = service.id;
+                    servicePrice.value = Number(service.price || 0).toFixed(2);
+                    fillWork(service.service_name, service.description);
+                } else {
+                    fillWork(custom ? serviceInput.value.trim() : '', '');
+                }
+                if (custom) serviceInput.focus();
+            });
+            serviceInput.addEventListener('input', () => {
+                hiddenName.value = serviceInput.value.trim();
+                fillWork(hiddenName.value, '');
+            });
+            fetch('index.php?page=admin&section=jobcards-services').then((response) => {
+                if (!response.ok) throw new Error('Services unavailable');
+                return response.json();
+            }).then((rows) => {
+                if (!Array.isArray(rows)) throw new Error('Invalid services');
+                services = rows;
                 services.forEach((service) => {
                     const option = document.createElement('option');
-                    option.value = service.service_name;
-                    option.label = service.service_code + ' - Rs. ' + Number(service.price || 0).toFixed(2);
-                    serviceList.appendChild(option);
+                    option.value = String(service.id);
+                    option.textContent = service.service_name + ' - Rs. ' + Number(service.price || 0).toFixed(2);
+                    serviceSelect.insertBefore(option, serviceSelect.querySelector('[value="custom"]'));
                 });
-                serviceInput.addEventListener('input', () => {
-                    const value = serviceInput.value.trim().toLowerCase();
-                    const service = services.find((item) => item.service_name.toLowerCase() === value || item.service_code.toLowerCase() === value);
-                    const hiddenId = serviceRow.querySelector('[name="primary_service_id"]');
-                    const hiddenName = serviceRow.querySelector('[name="primary_service_name"]');
-                    if (service) {
-                        hiddenId.value = service.id;
-                        hiddenName.value = '';
-                        servicePrice.value = Number(service.price || 0).toFixed(2);
-                        if (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true') { complaintField.value = service.description || service.service_name; complaintField.dataset.serviceAutofill = 'true'; }
-                        if (workField && (!workField.value.trim() || workField.dataset.serviceAutofill === 'true')) { workField.value = service.service_name; workField.dataset.serviceAutofill = 'true'; }
-                    } else {
-                        hiddenId.value = '';
-                        hiddenName.value = serviceInput.value.trim();
-                        if (serviceInput.value.trim() && (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true')) { complaintField.value = serviceInput.value.trim(); complaintField.dataset.serviceAutofill = 'true'; }
-                    }
-                });
-            }).catch(() => {});
+                if (!services.length) serviceRow.querySelector('[data-service-help]').textContent = 'No saved services yet. Choose Other to type a service and enter its price.';
+            }).catch(() => {
+                serviceRow.querySelector('[data-service-help]').textContent = 'Saved services could not be loaded. Choose Other to type a service and enter its price.';
+            });
             complaintField.addEventListener('input', () => { complaintField.dataset.serviceAutofill = 'false'; });
             workField?.addEventListener('input', () => { workField.dataset.serviceAutofill = 'false'; });
         }
