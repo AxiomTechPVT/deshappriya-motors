@@ -222,7 +222,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const sidebar = document.querySelector('[data-sidebar]');
     const toggle = document.querySelector('[data-sidebar-toggle]');
-    if (sidebar && toggle) toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+    if (sidebar && toggle) {
+        let backdrop = document.querySelector('[data-sidebar-backdrop]');
+        if (!backdrop) { backdrop = document.createElement('button'); backdrop.type = 'button'; backdrop.className = 'sidebar-backdrop'; backdrop.dataset.sidebarBackdrop = 'true'; backdrop.setAttribute('aria-label', 'Close navigation'); document.body.appendChild(backdrop); }
+        const closeSidebar = () => { sidebar.classList.remove('open'); backdrop.classList.remove('visible'); document.body.classList.remove('sidebar-open'); };
+        toggle.addEventListener('click', () => { const open = sidebar.classList.toggle('open'); backdrop.classList.toggle('visible', open); document.body.classList.toggle('sidebar-open', open); });
+        backdrop.addEventListener('click', closeSidebar);
+        sidebar.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeSidebar));
+        const currentSection = new URLSearchParams(window.location.search).get('section') || 'dashboard';
+        sidebar.querySelectorAll('[data-sidebar-item]').forEach((link) => { if (new URL(link.href, window.location.href).searchParams.get('section') === currentSection) link.classList.add('active'); });
+        const search = sidebar.querySelector('[data-sidebar-search]');
+        if (search) search.addEventListener('input', () => {
+            const query = search.value.trim().toLowerCase(); let visible = 0;
+            sidebar.querySelectorAll('[data-sidebar-item]').forEach((item) => { const match = !query || item.textContent.toLowerCase().includes(query); item.hidden = !match; if (match) visible += 1; });
+            sidebar.querySelectorAll('[data-sidebar-group]').forEach((group) => { const hasMatch = !query || group.querySelector('[data-sidebar-item]:not([hidden])'); group.hidden = !hasMatch; if (query && hasMatch) group.open = true; });
+            const noResults = sidebar.querySelector('[data-sidebar-no-results]'); if (noResults) noResults.hidden = visible > 0;
+        });
+    }
 
     const vehicleList = document.querySelector('[data-vehicle-list]');
     const addVehicle = document.querySelector('[data-add-vehicle]');

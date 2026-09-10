@@ -640,6 +640,37 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .cashier-shortcuts { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-top:18px; }.cashier-shortcuts a { display:flex; flex-direction:column; gap:8px; padding:12px 10px; border:1px solid #e4eaf2; border-radius:8px; color:var(--navy); font-size:11px; text-decoration:none; }.cashier-shortcuts a:hover { border-color:#9fc4f5; background:#f7fbff; }.cashier-shortcuts b { color:#1769d1; font-size:20px; line-height:1; }.cashier-recent-list { margin-top:10px; }.cashier-recent-list>div { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #edf1f6; }.cashier-recent-list>div:last-child { border-bottom:0; }.cashier-recent-list span { flex:1; min-width:0; }.cashier-recent-list strong,.cashier-recent-list small { display:block; }.cashier-recent-list strong { color:#1769d1; font-size:12px; }.cashier-recent-list small { overflow:hidden; color:var(--muted); font-size:10px; text-overflow:ellipsis; white-space:nowrap; }.cashier-recent-list>b { font-size:12px; white-space:nowrap; }.cashier-empty { color:var(--muted); font-size:12px; }
 @media(max-width:900px){.cashier-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.cashier-work-grid,.cashier-bottom-grid{grid-template-columns:1fr}.cashier-hero-card{padding:25px}.cashier-hero-orbit{width:140px;height:140px;flex-basis:140px}}
 @media(max-width:560px){.cashier-welcome{display:block}.cashier-date{display:inline-block;margin-top:16px;text-align:left}.cashier-hero-card{display:block}.cashier-hero-copy h2{font-size:30px}.cashier-hero-orbit{margin:20px auto 0}.cashier-metrics{grid-template-columns:1fr}.cashier-shortcuts{grid-template-columns:repeat(2,1fr)}.handover-steps{grid-template-columns:1fr}.cashier-alert{align-items:flex-start;flex-direction:column}}
+.sidebar-search{display:block;margin:0 4px 14px}.sidebar-search span{display:block;margin:0 8px 6px;color:#98a2b3;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.sidebar-search input{width:100%;padding:9px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.07);color:#fff;font-size:12px;outline:0}.sidebar-search input::placeholder{color:#98a2b3}.sidebar-search input:focus{border-color:#5b9cff;background:rgba(255,255,255,.11)}.sidebar-no-results{margin:16px 8px;color:#98a2b3;font-size:11px;text-align:center}.sidebar-backdrop{display:none}@media(max-width:991px){.sidebar-backdrop{position:fixed;inset:0;z-index:9;border:0;background:rgba(3,18,38,.48);opacity:0;pointer-events:none;display:block;transition:opacity .2s}.sidebar-backdrop.visible{opacity:1;pointer-events:auto}.sidebar{z-index:20;width:min(300px,86vw);box-shadow:18px 0 40px rgba(3,18,38,.2)}body.sidebar-open{overflow:hidden}}
+.vehicle-entry-panel .customer-form-actions{min-width:0}@media(max-width:575px){.vehicle-entry-panel .customer-form-actions{justify-content:stretch;flex-wrap:wrap}.vehicle-entry-panel .customer-form-actions .btn{flex:1 1 0;min-width:0}}
+@media(max-width:575px){
+    .jobcard-layout,.jobcard-layout main,.jobcard-section{min-width:0;width:100%;}
+    .jobcard-section{padding:14px 12px;overflow:hidden;}
+    .jobcard-section h2{font-size:15px;line-height:1.35;}
+    .vehicle-search-row{display:flex;align-items:stretch;flex-wrap:wrap;gap:8px;}
+    .vehicle-search-row>label{flex:1 1 100%;min-width:0;}
+    .vehicle-search-row>.or-label{flex:0 0 auto;padding:10px 2px 0;}
+    .vehicle-search-row>.btn{flex:1 1 0;min-width:0;padding:9px 7px;font-size:11px;white-space:normal;}
+    .job-info-grid{grid-template-columns:1fr;gap:12px;}
+    .job-info-grid .row{--bs-gutter-x:8px;}
+    .jobcard-section .row{--bs-gutter-x:10px;}
+    .jobcard-section input,.jobcard-section select,.jobcard-section textarea{max-width:100%;}
+    .jobcard-section .panel-heading{align-items:flex-start;gap:8px;}
+    .jobcard-section .panel-heading h2{min-width:0;}
+    .jobcard-section .panel-heading .btn{flex:0 0 auto;white-space:nowrap;}
+    .job-items-table{display:block;min-width:0;width:100%;}
+    .job-items-table thead{display:none;}
+    .job-items-table tbody,.job-items-table tr,.job-items-table td{display:block;width:100%;}
+    .job-items-table tr.job-item{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #e7edf5;}
+    .job-items-table td{padding:0;border:0;min-width:0;}
+    .job-items-table td:first-child{display:none;}
+    .job-items-table td:nth-child(2),.job-items-table td:nth-child(3){grid-column:1/-1;}
+    .job-items-table td:nth-child(4)::before{content:'Quantity';display:block;margin-bottom:4px;color:#667085;font-size:10px;font-weight:700;}
+    .job-items-table td:nth-child(5)::before{content:'Unit Price (Rs.)';display:block;margin-bottom:4px;color:#667085;font-size:10px;font-weight:700;}
+    .job-items-table td:nth-child(6)::before{content:'Discount (Rs.)';display:block;margin-bottom:4px;color:#667085;font-size:10px;font-weight:700;}
+    .job-items-table td:nth-child(7){display:flex;align-items:center;padding-top:5px;color:#102a56;font-weight:700;}
+    .job-items-table td:nth-child(7)::before{content:'Amount: Rs. ';color:#667085;font-weight:400;}
+    .job-items-table td:nth-child(8){display:flex;justify-content:flex-end;padding-top:2px;}
+}
 
 .account-profile-layout{max-width:1040px}.account-alert{max-width:1040px;margin-top:20px}.account-password-card{max-width:1040px;margin-top:18px;padding:28px}.account-side-copy{margin:22px 0;color:#d2deed;font-size:12px;line-height:1.6}.account-password-link{color:#102a56;font-weight:700}.account-password-link:hover{color:#155eef}
 @media(max-width:575px){.account-password-card{padding:20px 16px}.account-profile-layout{margin-top:18px}}
