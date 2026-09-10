@@ -100,6 +100,29 @@ document.addEventListener('DOMContentLoaded', () => {
             HTMLFormElement.prototype.submit.call(customerUpdateForm);
         });
     }
+    const jobcardUpdateForm = document.querySelector('[data-jobcard-update-form]');
+    const jobcardUpdateDialog = document.querySelector('[data-jobcard-update-confirm]');
+    if (jobcardUpdateForm && jobcardUpdateDialog) {
+        jobcardUpdateForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!jobcardUpdateDialog.open) jobcardUpdateDialog.showModal();
+        });
+        jobcardUpdateDialog.querySelector('[data-jobcard-update-no]').addEventListener('click', () => jobcardUpdateDialog.close());
+        jobcardUpdateDialog.querySelector('[data-jobcard-update-yes]').addEventListener('click', (event) => {
+            if (event.currentTarget.disabled) return;
+            if (!jobcardUpdateForm.reportValidity()) {
+                jobcardUpdateDialog.close();
+                return;
+            }
+            event.currentTarget.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_update';
+            confirmation.value = 'yes';
+            jobcardUpdateForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(jobcardUpdateForm);
+        });
+    }
     const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
     const jobVehicle = document.querySelector('#job-vehicle');
     if (jobVehicle) {

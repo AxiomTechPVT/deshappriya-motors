@@ -508,6 +508,10 @@ function handle_job_card_request(string $section): void
     }
     if ($section === 'jobcards-edit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
+        if (($_POST['confirm_update'] ?? '') !== 'yes') {
+            flash('error', 'Confirm Yes before updating the job card.');
+            redirect('index.php?page=admin&section=jobcards-edit&id=' . $id);
+        }
         $input = job_card_input();
         $errors = job_card_validate($input);
         if (!$errors) {
@@ -523,7 +527,7 @@ function handle_job_card_request(string $section): void
         $job = job_card_record($id);
         if (!$job) { http_response_code(404); exit('Job card not found.'); }
         if (!in_array($job['status'], ['pending', 'ongoing'], true)) { redirect('index.php?page=admin&section=jobcards-view&id=' . $id); }
-        $input = ['customer_id'=>(int)$job['customer_id'],'vehicle_id'=>(int)$job['vehicle_id'],'bay_name'=>(string)($job['bay_name'] ?? ''),'mechanic_id'=>(int)($job['mechanic_id'] ?? 0),'complaint'=>(string)($job['complaint'] ?? ''),'requested_work'=>(string)($job['requested_work'] ?? ''),'notes'=>(string)($job['notes'] ?? ''),'expected_delivery_date'=>(string)($job['expected_delivery_date'] ?? ''),'priority'=>(string)$job['priority'],'items'=>$job['items']];
+        $input = $_SERVER['REQUEST_METHOD'] === 'POST' ? job_card_input() : ['customer_id'=>(int)$job['customer_id'],'vehicle_id'=>(int)$job['vehicle_id'],'bay_name'=>(string)($job['bay_name'] ?? ''),'mechanic_id'=>(int)($job['mechanic_id'] ?? 0),'complaint'=>(string)($job['complaint'] ?? ''),'requested_work'=>(string)($job['requested_work'] ?? ''),'notes'=>(string)($job['notes'] ?? ''),'expected_delivery_date'=>(string)($job['expected_delivery_date'] ?? ''),'priority'=>(string)$job['priority'],'items'=>$job['items']];
         $lookups = job_card_lookup(); $title = 'Edit Job Card ' . $job['job_card_no']; $sectionForHeader = $section;
         require __DIR__ . '/../includes/header.php'; require __DIR__ . '/../views/jobcard-edit.php'; require __DIR__ . '/../includes/footer.php'; return;
     }
