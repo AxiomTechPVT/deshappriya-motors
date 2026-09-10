@@ -777,3 +777,28 @@ body:has(.other-income-form-backdrop), body:has(.other-income-view-backdrop) { o
 /* Show the stock list behind its details modal. */
 .stock-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
 body:has(.stock-view-backdrop) { overflow:hidden; }
+
+/* Services list remains visible behind service details. */
+.service-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.service-view-backdrop) { overflow:hidden; }
+
+/* Center the service form above the blurred list. */
+.service-form-centered { display:grid; place-items:center; padding:24px; background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+.service-form-centered .service-drawer { position:relative; inset:auto; width:min(640px,100%); min-width:0; height:auto; max-height:calc(100dvh - 48px); border-radius:14px; box-shadow:0 20px 60px #0b1f3a33; }
+.service-form-centered .service-drawer-header h2 { font-size:24px; }
+body:has(.service-form-centered) { overflow:hidden; }
+@media(max-width:575px) {
+    .service-form-centered { padding:12px; }
+    .service-form-centered .service-drawer { padding:18px; max-height:calc(100dvh - 24px); }
+}
+
+/* Appointment dialogs overlay their list. */
+.appointment-modal-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.appointment-modal-backdrop) { overflow:hidden; }
+
+.appointment-search { position:relative; }
+.appointment-search-results { position:absolute; top:100%; left:0; right:0; z-index:5; max-height:220px; overflow:auto; background:#fff; border:1px solid #dbe4f0; border-radius:8px; box-shadow:0 8px 24px #102a5626; }
+.appointment-search-results[hidden] { display:none; }
+.appointment-search-results button,.appointment-search-results > div { display:block; width:100%; padding:10px 12px; border:0; background:#fff; color:#102a56; text-align:left; white-space:normal; }
+.appointment-search-results button:hover,.appointment-search-results button[aria-selected="true"] { background:#edf4ff; }
+.appointment-search-details { display:block; margin-top:6px; color:#526580; }
