@@ -69,7 +69,7 @@ if ($page === 'admin') {
     $user = current_user();
     $section = preg_replace('/[^a-z0-9_-]/i', '', $_GET['section'] ?? 'dashboard');
     if ($user['role'] === 'cashier') {
-        $cashierSections = ['customers', 'customers-add', 'vehicles', 'vehicles-add', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed', 'estimates', 'invoices-mine', 'invoices', 'invoices-quick', 'invoices-view', 'invoices-thermal', 'invoices-payment', 'invoices-receipt', 'reports-payments', 'cashier-register', 'expenses', 'expenses-add', 'expenses-view', 'other-income', 'other-income-add', 'other-income-view', 'employees-advances', 'employees-attendance', 'stock', 'stock-low', 'services', 'appointments'];
+        $cashierSections = ['customers', 'customers-add', 'vehicles', 'vehicles-add', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed', 'estimates', 'invoices-mine', 'invoices', 'invoices-quick', 'invoices-view', 'invoices-thermal', 'invoices-payment', 'invoices-receipt', 'reports-payments', 'cashier-register', 'cashier-advance-requests', 'expenses', 'expenses-add', 'expenses-view', 'other-income', 'other-income-add', 'other-income-view', 'employees-advances', 'employees-attendance', 'stock', 'stock-low', 'services', 'appointments'];
         $allowed = in_array($section, $cashierSections, true) || str_starts_with($section, 'invoices-') || str_starts_with($section, 'jobcards-');
         if (!$allowed) {
             redirect('index.php?page=cashier');
@@ -118,6 +118,11 @@ if ($page === 'admin') {
     if ($section === 'cashier-handovers') {
         require_once __DIR__ . '/includes/cashier-register.php';
         handle_cashier_handover_request($section);
+        exit;
+    }
+    if ($section === 'cashier-advance-requests') {
+        require_once __DIR__ . '/includes/cashier-advances.php';
+        handle_cashier_advance_request($section);
         exit;
     }
     if (str_starts_with($section, 'reports')) {
@@ -192,6 +197,7 @@ if ($page === 'admin') {
 if ($page === 'cashier') {
     require_role('cashier');
     $user = current_user();
+    $cashierDashboard = cashier_dashboard_data((int) ($user['id'] ?? 0));
     $title = 'Cashier dashboard';
     require __DIR__ . '/views/cashier-dashboard.php';
     exit;

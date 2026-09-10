@@ -64,6 +64,9 @@ function employee_save(array $input, ?int $id=null): void
 function handle_employee_request(string $section): void
 {
     ensure_employee_tables(); $errors=[]; $employeeId=(int)($_GET['id']??$_POST['employee_id']??0); $employee=$employeeId>0?employee_find($employeeId):null;
+    if($section==='employees-advances' && (current_user()['role'] ?? '') === 'cashier'){
+        redirect('index.php?page=admin&section=cashier-advance-requests');
+    }
     if(in_array($section,['employees-view','employees-edit','employees-delete'],true)&&!$employee){ http_response_code(404); exit('Employee not found.'); }
     if($section==='employees-attendance'){
         $isCashier = (current_user()['role'] ?? '') === 'cashier';

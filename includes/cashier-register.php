@@ -7,6 +7,8 @@ function ensure_cashier_register_table(): void
     static $ready = false;
     if ($ready) return;
 
+    if (!function_exists('ensure_cashier_advance_table')) require_once __DIR__ . '/cashier-advances.php';
+    ensure_cashier_advance_table();
     database()->exec("CREATE TABLE IF NOT EXISTS cashier_registers (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         cashier_id BIGINT UNSIGNED NOT NULL,
@@ -109,6 +111,10 @@ function cashier_register_transactions(string $date, int $cashierId): array
         ORDER BY a.created_at, a.id");
     $statement->execute(['date' => $date]);
     foreach ($statement->fetchAll() as $row) {
+        $transactions[] = ['type' => 'Staff advance', 'direction' => 'out', 'amount' => (float) $row['amount'], 'description' => $row['description'], 'reference' => $row['reference_no'], 'happened_at' => $row['happened_at']];
+    }
+
+    foreach (cashier_advance_requests_for_date($date, $cashierId) as $row) {
         $transactions[] = ['type' => 'Staff advance', 'direction' => 'out', 'amount' => (float) $row['amount'], 'description' => $row['description'], 'reference' => $row['reference_no'], 'happened_at' => $row['happened_at']];
     }
 

@@ -190,6 +190,34 @@ CREATE TABLE IF NOT EXISTS employee_advances (
     CONSTRAINT employee_advances_employee_fk FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS cashier_advance_requests (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    cashier_id BIGINT UNSIGNED NOT NULL,
+    employee_id BIGINT UNSIGNED NOT NULL,
+    advance_date DATE NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(255) NULL,
+    status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+    disbursement_status ENUM('not_given','given') NOT NULL DEFAULT 'not_given',
+    requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reviewed_by BIGINT UNSIGNED NULL,
+    reviewed_at DATETIME NULL,
+    review_note VARCHAR(255) NULL,
+    given_by BIGINT UNSIGNED NULL,
+    given_at DATETIME NULL,
+    receipt_no VARCHAR(40) NULL,
+    PRIMARY KEY (id),
+    KEY cashier_advance_requests_cashier_index (cashier_id),
+    KEY cashier_advance_requests_employee_index (employee_id),
+    KEY cashier_advance_requests_date_index (advance_date),
+    KEY cashier_advance_requests_status_index (status),
+    UNIQUE KEY cashier_advance_requests_receipt_unique (receipt_no),
+    CONSTRAINT cashier_advance_requests_cashier_fk FOREIGN KEY (cashier_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT cashier_advance_requests_employee_fk FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    CONSTRAINT cashier_advance_requests_reviewer_fk FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT cashier_advance_requests_given_by_fk FOREIGN KEY (given_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS employee_loans (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     employee_id BIGINT UNSIGNED NOT NULL,

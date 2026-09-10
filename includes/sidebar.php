@@ -9,7 +9,7 @@ $cashierMenu = [
     'Cashier' => ['cashier-register', 'invoices-mine', 'invoices', 'invoices-quick', 'reports-payments'],
     'Expenses' => ['expenses'],
     'Other Income' => ['other-income'],
-    'Employee Advance' => ['employees-advances'],
+    'Employee Advance' => ['cashier-advance-requests'],
     'Employee Attendance' => ['employees-attendance'],
     'Stock / Parts' => ['stock', 'stock-low'],
     'Services' => ['services'],
@@ -21,7 +21,7 @@ $cashierLabels = [
     'jobcards-ongoing' => 'Ongoing Job Cards', 'jobcards-completed' => 'Completed Job Cards',
     'estimates' => 'Estimates', 'invoices-mine' => 'My Invoices', 'invoices' => 'Invoice List', 'invoices-quick' => 'Quick Invoice',
     'cashier-register' => 'Daily Cash Drawer', 'reports-payments' => 'Payment History', 'expenses' => 'Expense List', 'other-income' => 'Other Income',
-    'employees-advances' => 'Employee Advance', 'employees-attendance' => 'Attendance', 'stock' => 'Stock List', 'stock-low' => 'Low Stock',
+    'employees-advances' => 'Employee Advance', 'cashier-advance-requests' => 'Employee Advance', 'employees-attendance' => 'Attendance', 'stock' => 'Stock List', 'stock-low' => 'Low Stock',
     'services' => 'Services', 'appointments' => 'Appointments',
 ];
 $cashierIcons = ['Dashboard' => '&#9632;', 'Customers' => '&#9787;', 'Vehicles' => '&#9638;', 'Job Cards' => '&#9881;', 'Estimates' => '&#9998;', 'Cashier' => '&#36;', 'Expenses' => '&#9888;', 'Other Income' => '&#43;', 'Employee Advance' => '&#9733;', 'Employee Attendance' => '&#128197;', 'Stock / Parts' => '&#9632;', 'Services' => '&#9881;', 'Appointments' => '&#128197;'];
