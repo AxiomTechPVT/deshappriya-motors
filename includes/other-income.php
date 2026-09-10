@@ -49,6 +49,7 @@ function other_income_where(array $filters, array &$params): string
     if ($filters['payment_method'] !== '') { $where[] = 'oi.payment_method = :payment_method'; $params['payment_method'] = $filters['payment_method']; }
     if ($filters['from'] !== '') { $where[] = 'oi.income_date >= :from_date'; $params['from_date'] = $filters['from']; }
     if ($filters['to'] !== '') { $where[] = 'oi.income_date <= :to_date'; $params['to_date'] = $filters['to']; }
+    if ((int) ($filters['created_by'] ?? 0) > 0) { $where[] = 'oi.created_by = :created_by'; $params['created_by'] = (int) $filters['created_by']; }
     return $where ? ' WHERE ' . implode(' AND ', $where) : '';
 }
 
@@ -129,6 +130,9 @@ function handle_other_income_request(string $section): void
 
     if ($section === 'other-income-delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf();
+        $record = other_income_record((int) ($_POST['income_id'] ?? 0));
+        if (!$record) { http_response_code(404); exit('Other income record not found.'); }
+        if (($record['created_by'] ?? null) !== null && (current_user()['role'] ?? '') === 'cashier' && (int) $record['created_by'] !== (int) (current_user()['id'] ?? 0)) { http_response_code(403); exit('You can only change other income created by you.'); }
         $statement = database()->prepare('DELETE FROM other_income WHERE id = :id');
         $statement->execute(['id' => (int) ($_POST['income_id'] ?? 0)]);
         flash('success', 'Other income record deleted successfully.');
@@ -138,6 +142,7 @@ function handle_other_income_request(string $section): void
     if (in_array($section, ['other-income-view', 'other-income-edit'], true)) {
         $income = other_income_record($id);
         if (!$income) { http_response_code(404); exit('Other income record not found.'); }
+        if (($income['created_by'] ?? null) !== null && (current_user()['role'] ?? '') === 'cashier' && (int) $income['created_by'] !== (int) (current_user()['id'] ?? 0)) { http_response_code(403); exit('You can only access other income created by you.'); }
         if ($section === 'other-income-view') {
             $title = 'View Other Income'; $sectionForHeader = $section;
             require __DIR__ . '/../includes/header.php';
@@ -184,6 +189,7 @@ function handle_other_income_request(string $section): void
     }
 
     $filters = other_income_filters();
+    if ((current_user()['role'] ?? '') === 'cashier') $filters['created_by'] = (int) (current_user()['id'] ?? 0);
     $rows = other_income_rows($filters);
     $categories = other_income_categories();
     $summary = other_income_summary($filters);
