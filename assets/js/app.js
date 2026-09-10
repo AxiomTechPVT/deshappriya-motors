@@ -1,29 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const askBeforeChange = (message, onConfirm) => {
-        const backdrop = document.createElement('div');
-        backdrop.className = 'action-confirm-backdrop';
-        backdrop.innerHTML = '<section class="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="action-confirm-title"><span class="action-confirm-mark">!</span><h2 id="action-confirm-title">Please confirm</h2><p>' + escapeHtml(message) + '</p><div class="action-confirm-actions"><button type="button" class="btn btn-light" data-confirm-no>No</button><button type="button" class="btn btn-primary" data-confirm-yes>Yes</button></div></section>';
-        document.body.appendChild(backdrop);
-        const close = () => backdrop.remove();
-        backdrop.querySelector('[data-confirm-no]').addEventListener('click', close);
-        backdrop.addEventListener('click', (event) => { if (event.target === backdrop) close(); });
-        backdrop.querySelector('[data-confirm-yes]').addEventListener('click', () => { close(); onConfirm(); });
-        backdrop.querySelector('[data-confirm-yes]').focus();
-    };
-    document.addEventListener('click', (event) => {
-        const link = event.target.closest('a[href*="edit"], a[href*="modal=edit"]');
-        if (!link || event.defaultPrevented || link.dataset.confirmed === 'true') return;
-        event.preventDefault();
-        askBeforeChange('Do you want to edit this record?', () => { link.dataset.confirmed = 'true'; window.location.href = link.href; });
-    }, true);
-    document.addEventListener('submit', (event) => {
-        const form = event.target;
-        const destructiveInput = form instanceof HTMLFormElement && Array.from(form.querySelectorAll('input,button')).some((field) => /^(delete|remove)$/i.test(field.value || '') || /delete|remove/i.test(field.name || ''));
-        if (!(form instanceof HTMLFormElement) || (!/(delete|remove)/i.test(form.action) && !destructiveInput) || form.dataset.confirmed === 'true') return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        askBeforeChange('Do you want to delete this record? This action may not be reversible.', () => { form.dataset.confirmed = 'true'; HTMLFormElement.prototype.submit.call(form); });
-    }, true);
     const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
     const jobVehicle = document.querySelector('#job-vehicle');
     if (jobVehicle) {

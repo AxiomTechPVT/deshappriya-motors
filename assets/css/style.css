@@ -674,7 +674,6 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 
 .account-profile-layout{max-width:1040px}.account-alert{max-width:1040px;margin-top:20px}.account-password-card{max-width:1040px;margin-top:18px;padding:28px}.account-side-copy{margin:22px 0;color:#d2deed;font-size:12px;line-height:1.6}.account-password-link{color:#102a56;font-weight:700}.account-password-link:hover{color:#155eef}
 @media(max-width:575px){.account-password-card{padding:20px 16px}.account-profile-layout{margin-top:18px}}
-.action-confirm-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:rgba(3,18,38,.52)}.action-confirm-dialog{width:min(100%,420px);padding:28px;border:1px solid #dbe4f0;border-radius:16px;background:#fff;box-shadow:0 20px 60px rgba(3,18,38,.22);text-align:center;color:#102a56}.action-confirm-mark{display:grid;place-items:center;width:42px;height:42px;margin:0 auto 14px;border-radius:50%;background:#fff1d8;color:#b54708;font-size:22px;font-weight:900}.action-confirm-dialog h2{margin:0 0 8px;font-size:20px}.action-confirm-dialog p{margin:0;color:#667085;font-size:13px;line-height:1.5}.action-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:22px}.action-confirm-actions .btn{min-width:90px}
 
 /* Make both navigation variants easier to scan without changing their routes. */
 .sidebar-nav { padding-bottom: 28px; }
@@ -699,6 +698,25 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .cashier-sidebar::-webkit-scrollbar-track { background: transparent; }
 .cashier-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 99px; }
 .cashier-sidebar .sidebar-bottom { flex-shrink: 0; }
+.cashier-user { --cashier-blue: #1769d1; --cashier-navy: #0b1f3a; --cashier-soft-blue: #eef5ff; }
+.cashier-user .main-area { background: #f6f8fb; }
+.cashier-user .topbar { box-shadow: 0 1px 0 rgba(16,42,86,.03); }
+.cashier-user .content-area { padding-top: 32px; }
+.cashier-user .btn-primary { background: var(--cashier-blue); border-color: var(--cashier-blue); box-shadow: 0 4px 10px rgba(23,105,209,.14); }
+.cashier-user .btn-primary:hover { background: #0f58b8; border-color: #0f58b8; }
+.cashier-user .form-control:focus, .cashier-user .form-select:focus { border-color: #8bb8f2; box-shadow: 0 0 0 3px rgba(23,105,209,.1); }
+.cashier-user .admin-panel, .cashier-user .form-card, .cashier-user .list-panel { border-color: #e2eaf4; box-shadow: 0 5px 18px rgba(16,42,86,.045); }
+.cashier-user .admin-page-heading h1, .cashier-user .page-heading h1 { color: var(--cashier-navy); }
+.cashier-user .admin-page-heading p, .cashier-user .page-heading p { color: #60728c; }
+.cashier-user .table-responsive { border-radius: 10px; }
+.cashier-user .account-page-heading { margin-bottom: 4px; }
+@media (max-width: 767px) {
+    .cashier-user .content-area { padding: 24px 16px 32px; }
+    .cashier-user .account-page-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
+    .cashier-user .account-security-status { align-self: flex-start; }
+    .cashier-user .password-form-actions { justify-content: stretch; }
+    .cashier-user .password-form-actions .btn { width: 100%; }
+}
 @media (max-width: 991px) {
     .sidebar { width: min(310px, 88vw); }
     .sidebar-nav { padding-top: 24px; }
