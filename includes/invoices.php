@@ -171,7 +171,7 @@ function invoice_sync_completed_jobs(PDO $pdo): void
         $total = round($subtotal + $charge, 2);
         $pdo->beginTransaction();
         try {
-            $pdo->prepare('INSERT INTO invoices (invoice_no,invoice_type,job_card_id,customer_id,vehicle_id,invoice_date,subtotal,special_service_charge,total_amount,balance_amount,payment_status,created_by) VALUES (:no,"job_card",:job,:customer,:vehicle,:date,:subtotal,:charge,:total,:total,"due",:user)')->execute(['no'=>'TMP-SYNC-'.bin2hex(random_bytes(4)),'job'=>$job['id'],'customer'=>$job['customer_id'],'vehicle'=>$job['vehicle_id'] ?: null,'date'=>date('Y-m-d', strtotime((string)$job['created_at'])),'subtotal'=>$subtotal,'charge'=>$charge,'total'=>$total,'user'=>$job['created_by'] ?: null]);
+            $pdo->prepare('INSERT INTO invoices (invoice_no,invoice_type,job_card_id,customer_id,vehicle_id,invoice_date,subtotal,special_service_charge,total_amount,balance_amount,payment_status,created_by) VALUES (:no,"job_card",:job,:customer,:vehicle,:date,:subtotal,:charge,:total,:total,"due",:user)')->execute(['no'=>'TMP-SYNC-'.bin2hex(random_bytes(4)),'job'=>$job['id'],'customer'=>$job['customer_id'],'vehicle'=>$job['vehicle_id'] ?: null,'date'=>date('Y-m-d', strtotime((string)($job['completed_at'] ?: $job['created_at']))),'subtotal'=>$subtotal,'charge'=>$charge,'total'=>$total,'user'=>$job['created_by'] ?: null]);
             $invoiceId = (int)$pdo->lastInsertId();
             $invoiceNo = 'INV-' . str_pad((string)$invoiceId, 6, '0', STR_PAD_LEFT);
             $pdo->prepare('UPDATE invoices SET invoice_no=:no WHERE id=:id')->execute(['no'=>$invoiceNo,'id'=>$invoiceId]);

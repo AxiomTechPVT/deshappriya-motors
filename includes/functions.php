@@ -108,9 +108,12 @@ function admin_dashboard_data(string $period = 'today'): array
         'other_income' => [], 'net_profit' => 0.0, 'gross_profit' => 0.0, 'cashier_settled' => 0.0, 'cashier_remaining' => 0.0, 'parts_cost' => 0.0, 'total_expenses' => 0.0,
     ];
     try {
+        if (!function_exists('invoice_ensure_tables')) require_once __DIR__ . '/invoices.php';
+        invoice_ensure_tables();
         if (!function_exists('ensure_cashier_register_table')) require_once __DIR__ . '/cashier-register.php';
         ensure_cashier_register_table();
         $dateParams = ['start' => $rangeStart->format('Y-m-d'), 'end' => $rangeEnd->format('Y-m-d'), 'today' => $today->format('Y-m-d')];
+        $pdo->exec("UPDATE invoices i JOIN job_cards j ON j.id=i.job_card_id SET i.invoice_date=DATE(COALESCE(j.completed_at,j.created_at)) WHERE i.job_card_id IS NOT NULL AND j.status='completed'");
         $empty['sales'] = $value("SELECT COALESCE(SUM(total_amount),0) FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status <> 'cancelled'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['payments'] = $value("SELECT COALESCE(SUM(p.amount_applied),0) FROM invoice_payments p JOIN invoices i ON i.id=p.invoice_id WHERE DATE(p.payment_date) BETWEEN :start AND :end AND i.payment_status <> 'cancelled'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['pending'] = $value("SELECT COALESCE(SUM(GREATEST(balance_amount,0)),0) FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status IN ('due','partial')", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
@@ -130,7 +133,8 @@ function admin_dashboard_data(string $period = 'today'): array
         foreach ($incomeRows as $row) { if (in_array($row['item_type'], ['stock_part', 'external_part'], true)) $empty['income']['parts'] += (float) $row['amount']; elseif ($row['item_type'] === 'service') $empty['income']['services'] += (float) $row['amount']; }
         $empty['income']['charges'] = $value("SELECT COALESCE(SUM(special_service_charge),0) FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status <> 'cancelled'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['income']['other'] = $value("SELECT COALESCE(SUM(amount),0) FROM other_income WHERE income_date BETWEEN :start AND :end", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
-        foreach ($rows("SELECT status, COUNT(*) total FROM job_cards WHERE DATE(created_at) BETWEEN :start AND :end GROUP BY status", ['start' => $dateParams['start'], 'end' => $dateParams['end']]) as $row) if (isset($empty['job_status'][$row['status']])) $empty['job_status'][$row['status']] = (int) $row['total'];
+        $statusRows = $rows("SELECT SUM(status='pending' AND DATE(created_at) BETWEEN :start AND :end) pending, SUM(status='ongoing' AND DATE(created_at) BETWEEN :start2 AND :end2) ongoing, SUM(status='completed' AND DATE(COALESCE(completed_at,created_at)) BETWEEN :start3 AND :end3) completed, SUM(status='cancelled' AND DATE(COALESCE(updated_at,created_at)) BETWEEN :start4 AND :end4) cancelled FROM job_cards", ['start' => $dateParams['start'], 'end' => $dateParams['end'], 'start2' => $dateParams['start'], 'end2' => $dateParams['end'], 'start3' => $dateParams['start'], 'end3' => $dateParams['end'], 'start4' => $dateParams['start'], 'end4' => $dateParams['end']]);
+        if ($statusRows) foreach (array_keys($empty['job_status']) as $status) $empty['job_status'][$status] = (int) ($statusRows[0][$status] ?? 0);
         $empty['recent_jobs'] = $rows("SELECT jc.id, jc.job_card_no, jc.status, DATE(jc.created_at) created_date, c.name customer_name, v.vehicle_number FROM job_cards jc JOIN customers c ON c.id=jc.customer_id LEFT JOIN vehicles v ON v.id=jc.vehicle_id ORDER BY jc.created_at DESC, jc.id DESC LIMIT 5");
         $empty['recent_invoices'] = $rows("SELECT i.id, i.invoice_no, i.total_amount, i.payment_status, COALESCE(c.name,'Walk-in Customer') customer_name FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id WHERE i.payment_status <> 'cancelled' ORDER BY i.created_at DESC, i.id DESC LIMIT 5");
         $empty['low_items'] = $rows("SELECT part_code, part_name, stock_qty, reorder_level FROM stock_items WHERE status='active' AND stock_qty <= reorder_level ORDER BY (stock_qty <= 0) DESC, (reorder_level-stock_qty) DESC, part_name LIMIT 5");
