@@ -114,8 +114,14 @@ if ($page === 'admin') {
     $user = current_user();
     $section = preg_replace('/[^a-z0-9_-]/i', '', $_GET['section'] ?? 'dashboard');
     if ($user['role'] === 'cashier') {
-        $cashierSections = ['customers', 'customers-add', 'vehicles', 'vehicles-add', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed', 'estimates', 'invoices-mine', 'invoices', 'invoices-quick', 'invoices-view', 'invoices-thermal', 'invoices-payment', 'invoices-receipt', 'reports-payments', 'cashier-register', 'cashier-advance-requests', 'expenses', 'expenses-add', 'expenses-view', 'other-income', 'other-income-add', 'other-income-view', 'employees-advances', 'employees-attendance', 'stock', 'stock-low', 'services', 'appointments'];
-        $allowed = in_array($section, $cashierSections, true) || str_starts_with($section, 'invoices-') || str_starts_with($section, 'jobcards-');
+        $cashierSections = ['customers', 'customers-add', 'vehicles', 'vehicles-add', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed', 'estimates', 'invoices-mine', 'invoices', 'invoices-quick', 'invoices-view', 'invoices-thermal', 'invoices-payment', 'invoices-receipt', 'reports-payments', 'cashier-register', 'cashier-advance-requests', 'expenses', 'expenses-add', 'expenses-view', 'other-income', 'other-income-add', 'other-income-view', 'employees-advances', 'employees-attendance', 'stock', 'stock-low', 'stock-add', 'stock-view', 'stock-restock', 'services', 'services-add', 'services-view', 'appointments', 'appointments-add', 'appointments-view', 'appointments-edit', 'appointments-delete'];
+        // Customer list actions use the existing customer handlers for both roles.
+        $customerActions = ['customers-view', 'customers-edit', 'customers-deactivate', 'customers-export'];
+        // Vehicle list actions reuse the existing history, edit, and removal handlers.
+        $vehicleActions = ['vehicles-view', 'vehicles-edit', 'vehicles-remove'];
+        // Estimate buttons and forms must reach their existing handlers for cashiers.
+        $estimateActions = ['estimates-add', 'estimates-view', 'estimates-edit', 'estimates-print', 'estimates-print-settings', 'estimates-status', 'estimates-delete'];
+        $allowed = in_array($section, $cashierSections, true) || in_array($section, $customerActions, true) || in_array($section, $vehicleActions, true) || in_array($section, $estimateActions, true) || str_starts_with($section, 'invoices-') || str_starts_with($section, 'jobcards-');
         if (!$allowed) {
             redirect('index.php?page=cashier');
         }

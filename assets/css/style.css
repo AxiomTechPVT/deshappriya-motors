@@ -674,7 +674,6 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 
 .account-profile-layout{max-width:1040px}.account-alert{max-width:1040px;margin-top:20px}.account-password-card{max-width:1040px;margin-top:18px;padding:28px}.account-side-copy{margin:22px 0;color:#d2deed;font-size:12px;line-height:1.6}.account-password-link{color:#102a56;font-weight:700}.account-password-link:hover{color:#155eef}
 @media(max-width:575px){.account-password-card{padding:20px 16px}.account-profile-layout{margin-top:18px}}
-.action-confirm-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:rgba(3,18,38,.52)}.action-confirm-dialog{width:min(100%,420px);padding:28px;border:1px solid #dbe4f0;border-radius:16px;background:#fff;box-shadow:0 20px 60px rgba(3,18,38,.22);text-align:center;color:#102a56}.action-confirm-mark{display:grid;place-items:center;width:42px;height:42px;margin:0 auto 14px;border-radius:50%;background:#fff1d8;color:#b54708;font-size:22px;font-weight:900}.action-confirm-dialog h2{margin:0 0 8px;font-size:20px}.action-confirm-dialog p{margin:0;color:#667085;font-size:13px;line-height:1.5}.action-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:22px}.action-confirm-actions .btn{min-width:90px}
 
 /* Make both navigation variants easier to scan without changing their routes. */
 .sidebar-nav { padding-bottom: 28px; }
@@ -699,8 +698,107 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .cashier-sidebar::-webkit-scrollbar-track { background: transparent; }
 .cashier-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 99px; }
 .cashier-sidebar .sidebar-bottom { flex-shrink: 0; }
+.cashier-user { --cashier-blue: #1769d1; --cashier-navy: #0b1f3a; --cashier-soft-blue: #eef5ff; }
+.cashier-user .main-area { background: #f6f8fb; }
+.cashier-user .topbar { box-shadow: 0 1px 0 rgba(16,42,86,.03); }
+.cashier-user .content-area { padding-top: 32px; }
+.cashier-user .btn-primary { background: var(--cashier-blue); border-color: var(--cashier-blue); box-shadow: 0 4px 10px rgba(23,105,209,.14); }
+.cashier-user .btn-primary:hover { background: #0f58b8; border-color: #0f58b8; }
+.cashier-user .form-control:focus, .cashier-user .form-select:focus { border-color: #8bb8f2; box-shadow: 0 0 0 3px rgba(23,105,209,.1); }
+.cashier-user .admin-panel, .cashier-user .form-card, .cashier-user .list-panel { border-color: #e2eaf4; box-shadow: 0 5px 18px rgba(16,42,86,.045); }
+.cashier-user .admin-page-heading h1, .cashier-user .page-heading h1 { color: var(--cashier-navy); }
+.cashier-user .admin-page-heading p, .cashier-user .page-heading p { color: #60728c; }
+.cashier-user .table-responsive { border-radius: 10px; }
+.cashier-user .account-page-heading { margin-bottom: 4px; }
+@media (max-width: 767px) {
+    .cashier-user .content-area { padding: 24px 16px 32px; }
+    .cashier-user .account-page-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
+    .cashier-user .account-security-status { align-self: flex-start; }
+    .cashier-user .password-form-actions { justify-content: stretch; }
+    .cashier-user .password-form-actions .btn { width: 100%; }
+}
 @media (max-width: 991px) {
     .sidebar { width: min(310px, 88vw); }
     .sidebar-nav { padding-top: 24px; }
     .sidebar.open { box-shadow: 16px 0 42px rgba(3,18,38,.3); }
 }
+
+.vehicle-update-confirm { width:min(440px,calc(100% - 32px)); border:1px solid #e4e7ec; border-radius:12px; padding:24px; color:#101828; box-shadow:0 24px 70px rgba(16,24,40,.28); }
+.vehicle-update-confirm::backdrop { background:rgba(3,18,38,.48); }
+.vehicle-update-confirm h2 { font-size:20px; margin:0 0 12px; }
+.vehicle-update-confirm p { margin:0 0 20px; }
+
+.estimate-item-picker { position:relative; min-width:0; }
+.estimate-item-picker > input { width:100%; }
+.estimate-item-results { position:absolute; top:calc(100% + 4px); left:0; width:max(100%,280px); max-width:calc(100vw - 64px); max-height:240px; overflow-y:auto; z-index:50; border:1px solid #cbd5e1; border-radius:8px; background:#fff; box-shadow:0 8px 24px #10182826; }
+.estimate-item-results[hidden] { display:none; }
+.estimate-item-results button { display:block; width:100%; padding:10px 12px; border:0; border-bottom:1px solid #edf1f5; background:#fff; text-align:left; color:#102a56; min-height:44px; }
+.estimate-item-results button:hover,.estimate-item-results button[aria-selected="true"] { background:#eaf2ff; }
+.estimate-item-results strong,.estimate-item-results small { display:block; overflow-wrap:anywhere; }
+.estimate-item-results strong { font-size:13px; }
+.estimate-item-results small { margin-top:4px; font-size:11px; color:#667085; }
+.estimate-item-search-help { padding:10px 12px; background:#f8fafc; color:#667085; font-size:12px; line-height:1.5; }
+
+.estimate-form-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.estimate-form-backdrop) { overflow:hidden; }
+
+.friendly-expense { max-width:1080px; margin:0 auto; }
+.friendly-expense .expense-page-title { margin-bottom:22px; gap:16px; }
+.friendly-expense .expense-form-card { padding:24px; margin-bottom:20px; border-radius:12px; }
+.friendly-expense .expense-form-card h2 { font-size:18px; color:#102a56; margin:0 0 16px; }
+.friendly-expense .expense-form-help,.friendly-expense .expense-payment-heading p { font-size:13px; line-height:1.6; color:#667085; margin:0 0 20px; }
+.friendly-expense .expense-compact-grid { gap:20px; }
+.friendly-expense .form-label { display:block; font-size:13px; font-weight:600; color:#344054; }
+.friendly-expense .form-control,.friendly-expense .form-select { display:block; width:100%; box-sizing:border-box; min-height:44px; margin-top:8px; font-size:14px; border-radius:8px; }
+.friendly-expense .expense-type-options label { padding:16px; border-radius:10px; }
+.friendly-expense .expense-type-options small { font-size:12px; line-height:1.6; margin-top:8px; }
+.friendly-expense .expense-payment-heading { border-top:1px solid #e4e7ec; padding-top:22px; }
+.friendly-expense .expense-payment-heading h2 { margin-bottom:8px; }
+.friendly-expense .expense-payment-options { display:flex; flex-wrap:wrap; gap:8px; }
+.friendly-expense .expense-payment-options label { min-height:44px; padding:10px 16px; border-radius:8px; font-size:14px; cursor:pointer; }
+.friendly-expense .expense-payment-options label:has(input:checked) { background:#eaf2ff; border-color:#1769d1; color:#1769d1; }
+.friendly-expense #due-amount { border-color:#8db4ed; background:#f8fbff; font-size:17px; font-weight:600; }
+.friendly-expense #expense-due-help { display:block; color:#667085; font-size:12px; line-height:1.6; margin-top:8px; }
+.friendly-expense .btn { min-height:44px; font-size:14px; padding:10px 16px; border-radius:8px; }
+@media(max-width:650px) {
+ .friendly-expense .expense-form-card { padding:16px; }
+ .friendly-expense .expense-compact-grid,.friendly-expense .expense-type-options { grid-template-columns:minmax(0,1fr); }
+ .friendly-expense .expense-page-title { flex-wrap:wrap; }
+}
+
+/* Expense details stay above the expense list. */
+.expense-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.expense-view-backdrop) { overflow:hidden; }
+
+/* Keep the income list visible behind the income form. */
+.other-income-form-backdrop, .other-income-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.other-income-form-backdrop), body:has(.other-income-view-backdrop) { overflow:hidden; }
+
+/* Show the stock list behind its details modal. */
+.stock-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.stock-view-backdrop) { overflow:hidden; }
+
+/* Services list remains visible behind service details. */
+.service-view-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.service-view-backdrop) { overflow:hidden; }
+
+/* Center the service form above the blurred list. */
+.service-form-centered { display:grid; place-items:center; padding:24px; background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+.service-form-centered .service-drawer { position:relative; inset:auto; width:min(640px,100%); min-width:0; height:auto; max-height:calc(100dvh - 48px); border-radius:14px; box-shadow:0 20px 60px #0b1f3a33; }
+.service-form-centered .service-drawer-header h2 { font-size:24px; }
+body:has(.service-form-centered) { overflow:hidden; }
+@media(max-width:575px) {
+    .service-form-centered { padding:12px; }
+    .service-form-centered .service-drawer { padding:18px; max-height:calc(100dvh - 24px); }
+}
+
+/* Appointment dialogs overlay their list. */
+.appointment-modal-backdrop { background:rgba(16,24,40,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+body:has(.appointment-modal-backdrop) { overflow:hidden; }
+
+.appointment-search { position:relative; }
+.appointment-search-results { position:absolute; top:100%; left:0; right:0; z-index:5; max-height:220px; overflow:auto; background:#fff; border:1px solid #dbe4f0; border-radius:8px; box-shadow:0 8px 24px #102a5626; }
+.appointment-search-results[hidden] { display:none; }
+.appointment-search-results button,.appointment-search-results > div { display:block; width:100%; padding:10px 12px; border:0; background:#fff; color:#102a56; text-align:left; white-space:normal; }
+.appointment-search-results button:hover,.appointment-search-results button[aria-selected="true"] { background:#edf4ff; }
+.appointment-search-details { display:block; margin-top:6px; color:#526580; }

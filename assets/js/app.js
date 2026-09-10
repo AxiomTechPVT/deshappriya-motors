@@ -1,29 +1,128 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const askBeforeChange = (message, onConfirm) => {
-        const backdrop = document.createElement('div');
-        backdrop.className = 'action-confirm-backdrop';
-        backdrop.innerHTML = '<section class="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="action-confirm-title"><span class="action-confirm-mark">!</span><h2 id="action-confirm-title">Please confirm</h2><p>' + escapeHtml(message) + '</p><div class="action-confirm-actions"><button type="button" class="btn btn-light" data-confirm-no>No</button><button type="button" class="btn btn-primary" data-confirm-yes>Yes</button></div></section>';
-        document.body.appendChild(backdrop);
-        const close = () => backdrop.remove();
-        backdrop.querySelector('[data-confirm-no]').addEventListener('click', close);
-        backdrop.addEventListener('click', (event) => { if (event.target === backdrop) close(); });
-        backdrop.querySelector('[data-confirm-yes]').addEventListener('click', () => { close(); onConfirm(); });
-        backdrop.querySelector('[data-confirm-yes]').focus();
-    };
-    document.addEventListener('click', (event) => {
-        const link = event.target.closest('a[href*="edit"], a[href*="modal=edit"]');
-        if (!link || event.defaultPrevented || link.dataset.confirmed === 'true') return;
-        event.preventDefault();
-        askBeforeChange('Do you want to edit this record?', () => { link.dataset.confirmed = 'true'; window.location.href = link.href; });
-    }, true);
-    document.addEventListener('submit', (event) => {
-        const form = event.target;
-        const destructiveInput = form instanceof HTMLFormElement && Array.from(form.querySelectorAll('input,button')).some((field) => /^(delete|remove)$/i.test(field.value || '') || /delete|remove/i.test(field.name || ''));
-        if (!(form instanceof HTMLFormElement) || (!/(delete|remove)/i.test(form.action) && !destructiveInput) || form.dataset.confirmed === 'true') return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        askBeforeChange('Do you want to delete this record? This action may not be reversible.', () => { form.dataset.confirmed = 'true'; HTMLFormElement.prototype.submit.call(form); });
-    }, true);
+    const vehicleRemoveDialog = document.querySelector('[data-vehicle-remove-confirm]');
+    if (vehicleRemoveDialog) {
+        let pendingRemoveForm = null;
+        const yesButton = vehicleRemoveDialog.querySelector('[data-vehicle-remove-yes]');
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (!form.matches('[data-vehicle-remove-form]')) return;
+            event.preventDefault();
+            if (vehicleRemoveDialog.open) return;
+            pendingRemoveForm = form;
+            yesButton.disabled = false;
+            vehicleRemoveDialog.querySelector('[data-vehicle-remove-message]').textContent =
+                'Remove ' + form.dataset.vehicleNumber + ' from the active list?';
+            vehicleRemoveDialog.showModal();
+        });
+        vehicleRemoveDialog.querySelector('[data-vehicle-remove-no]').addEventListener('click', () => vehicleRemoveDialog.close());
+        vehicleRemoveDialog.addEventListener('close', () => { pendingRemoveForm = null; });
+        yesButton.addEventListener('click', () => {
+            if (!pendingRemoveForm || yesButton.disabled) return;
+            yesButton.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_remove';
+            confirmation.value = 'yes';
+            pendingRemoveForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(pendingRemoveForm);
+        });
+    }
+    const customerStatusDialog = document.querySelector('[data-customer-status-confirm]');
+    if (customerStatusDialog) {
+        let pendingStatusForm = null;
+        const yesButton = customerStatusDialog.querySelector('[data-customer-status-yes]');
+        document.querySelectorAll('[data-customer-status-form]').forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                if (customerStatusDialog.open) return;
+                pendingStatusForm = form;
+                yesButton.disabled = false;
+                const action = form.dataset.customerStatus === 'active' ? 'deactivate' : 'activate';
+                customerStatusDialog.querySelector('[data-customer-status-message]').textContent =
+                    'Are you sure you want to ' + action + ' ' + form.dataset.customerName + '?';
+                customerStatusDialog.showModal();
+            });
+        });
+        customerStatusDialog.querySelector('[data-customer-status-no]').addEventListener('click', () => customerStatusDialog.close());
+        customerStatusDialog.addEventListener('close', () => { pendingStatusForm = null; });
+        yesButton.addEventListener('click', () => {
+            if (!pendingStatusForm || yesButton.disabled) return;
+            yesButton.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_status';
+            confirmation.value = 'yes';
+            pendingStatusForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(pendingStatusForm);
+        });
+    }
+    const vehicleUpdateForm = document.querySelector('[data-vehicle-update-form]');
+    const vehicleUpdateDialog = document.querySelector('[data-vehicle-update-confirm]');
+    if (vehicleUpdateForm && vehicleUpdateDialog) {
+        vehicleUpdateForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!vehicleUpdateDialog.open) vehicleUpdateDialog.showModal();
+        });
+        vehicleUpdateDialog.querySelector('[data-vehicle-update-no]').addEventListener('click', () => vehicleUpdateDialog.close());
+        vehicleUpdateDialog.querySelector('[data-vehicle-update-yes]').addEventListener('click', (event) => {
+            if (!vehicleUpdateForm.reportValidity()) {
+                vehicleUpdateDialog.close();
+                return;
+            }
+            event.currentTarget.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_update';
+            confirmation.value = 'yes';
+            vehicleUpdateForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(vehicleUpdateForm);
+        });
+    }
+    const customerUpdateForm = document.querySelector('[data-customer-update-form]');
+    const customerUpdateDialog = document.querySelector('[data-customer-update-confirm]');
+    if (customerUpdateForm && customerUpdateDialog) {
+        customerUpdateForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!customerUpdateDialog.open) customerUpdateDialog.showModal();
+        });
+        customerUpdateDialog.querySelector('[data-customer-update-no]').addEventListener('click', () => customerUpdateDialog.close());
+        customerUpdateDialog.querySelector('[data-customer-update-yes]').addEventListener('click', (event) => {
+            if (!customerUpdateForm.reportValidity()) {
+                customerUpdateDialog.close();
+                return;
+            }
+            event.currentTarget.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_update';
+            confirmation.value = 'yes';
+            customerUpdateForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(customerUpdateForm);
+        });
+    }
+    const jobcardUpdateForm = document.querySelector('[data-jobcard-update-form]');
+    const jobcardUpdateDialog = document.querySelector('[data-jobcard-update-confirm]');
+    if (jobcardUpdateForm && jobcardUpdateDialog) {
+        jobcardUpdateForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!jobcardUpdateDialog.open) jobcardUpdateDialog.showModal();
+        });
+        jobcardUpdateDialog.querySelector('[data-jobcard-update-no]').addEventListener('click', () => jobcardUpdateDialog.close());
+        jobcardUpdateDialog.querySelector('[data-jobcard-update-yes]').addEventListener('click', (event) => {
+            if (event.currentTarget.disabled) return;
+            if (!jobcardUpdateForm.reportValidity()) {
+                jobcardUpdateDialog.close();
+                return;
+            }
+            event.currentTarget.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_update';
+            confirmation.value = 'yes';
+            jobcardUpdateForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(jobcardUpdateForm);
+        });
+    }
     const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
     const jobVehicle = document.querySelector('#job-vehicle');
     if (jobVehicle) {
@@ -73,6 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         jobForm.addEventListener('submit', (event) => {
             if (event.submitter && event.submitter.value === 'start' && (!bay.value || !mechanic.value || mechanic.value === '0')) {
                 event.preventDefault();
+                const moreDetails = bay.closest('details');
+                if (moreDetails) moreDetails.open = true;
                 alert('Select both a working bay and a mechanic before starting the job.');
                 if (!bay.value) bay.focus(); else mechanic.focus();
             }
@@ -83,36 +184,62 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isNewJobCard && complaintField && !jobForm.querySelector('[name="primary_service_id"]')) {
             const serviceRow = document.createElement('div');
             serviceRow.className = 'job-service-picker';
-            serviceRow.innerHTML = '<label class="form-label">Service / Complaint <input class="form-control" id="primary-service-input" list="saved-job-services" placeholder="Select a saved service or type a custom service"></label><datalist id="saved-job-services"></datalist><label class="form-label service-custom-price">Price (Rs.) <input class="form-control" type="number" name="primary_service_price" value="0" min="0" step="0.01"></label><small>Choose a saved service or type your own service in the same field. Saved prices fill automatically.</small><input type="hidden" name="primary_service_id" value=""><input type="hidden" name="primary_service_name" value="">';
+            serviceRow.innerHTML = '<div class="job-service-choice"><label class="form-label" for="primary-service-select">Service<select class="form-select" id="primary-service-select"><option value="">Select a service...</option><option value="custom">Other - type a service</option></select></label><label class="form-label" data-custom-service hidden>Service name<input class="form-control" id="primary-service-input" placeholder="Type the service you need" maxlength="190"></label></div><label class="form-label service-custom-price">Price (Rs.) <input class="form-control" type="number" name="primary_service_price" value="0" min="0" step="0.01"></label><small data-service-help>Select a saved service to fill its price. If it is not listed, choose Other.</small><input type="hidden" name="primary_service_id" value=""><input type="hidden" name="primary_service_name" value="">';
             complaintField.closest('.col-md-5')?.prepend(serviceRow);
+            const serviceSelect = serviceRow.querySelector('#primary-service-select');
             const serviceInput = serviceRow.querySelector('#primary-service-input');
-            const serviceList = serviceRow.querySelector('datalist');
+            const customField = serviceRow.querySelector('[data-custom-service]');
             const servicePrice = serviceRow.querySelector('[name="primary_service_price"]');
-            fetch('index.php?page=admin&section=jobcards-services').then((response) => response.json()).then((services) => {
+            const hiddenId = serviceRow.querySelector('[name="primary_service_id"]');
+            const hiddenName = serviceRow.querySelector('[name="primary_service_name"]');
+            let services = [];
+            const fillWork = (name, description) => {
+                if (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true') {
+                    complaintField.value = description || name;
+                    complaintField.dataset.serviceAutofill = 'true';
+                }
+                if (workField && (!workField.value.trim() || workField.dataset.serviceAutofill === 'true')) {
+                    workField.value = name;
+                    workField.dataset.serviceAutofill = 'true';
+                }
+            };
+            serviceSelect.addEventListener('change', () => {
+                const custom = serviceSelect.value === 'custom';
+                customField.hidden = !custom;
+                serviceInput.required = custom;
+                hiddenId.value = '';
+                hiddenName.value = custom ? serviceInput.value.trim() : '';
+                servicePrice.value = '0';
+                const service = services.find((item) => String(item.id) === serviceSelect.value);
+                if (service) {
+                    hiddenId.value = service.id;
+                    servicePrice.value = Number(service.price || 0).toFixed(2);
+                    fillWork(service.service_name, service.description);
+                } else {
+                    fillWork(custom ? serviceInput.value.trim() : '', '');
+                }
+                if (custom) serviceInput.focus();
+            });
+            serviceInput.addEventListener('input', () => {
+                hiddenName.value = serviceInput.value.trim();
+                fillWork(hiddenName.value, '');
+            });
+            fetch('index.php?page=admin&section=jobcards-services').then((response) => {
+                if (!response.ok) throw new Error('Services unavailable');
+                return response.json();
+            }).then((rows) => {
+                if (!Array.isArray(rows)) throw new Error('Invalid services');
+                services = rows;
                 services.forEach((service) => {
                     const option = document.createElement('option');
-                    option.value = service.service_name;
-                    option.label = service.service_code + ' - Rs. ' + Number(service.price || 0).toFixed(2);
-                    serviceList.appendChild(option);
+                    option.value = String(service.id);
+                    option.textContent = service.service_name + ' - Rs. ' + Number(service.price || 0).toFixed(2);
+                    serviceSelect.insertBefore(option, serviceSelect.querySelector('[value="custom"]'));
                 });
-                serviceInput.addEventListener('input', () => {
-                    const value = serviceInput.value.trim().toLowerCase();
-                    const service = services.find((item) => item.service_name.toLowerCase() === value || item.service_code.toLowerCase() === value);
-                    const hiddenId = serviceRow.querySelector('[name="primary_service_id"]');
-                    const hiddenName = serviceRow.querySelector('[name="primary_service_name"]');
-                    if (service) {
-                        hiddenId.value = service.id;
-                        hiddenName.value = '';
-                        servicePrice.value = Number(service.price || 0).toFixed(2);
-                        if (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true') { complaintField.value = service.description || service.service_name; complaintField.dataset.serviceAutofill = 'true'; }
-                        if (workField && (!workField.value.trim() || workField.dataset.serviceAutofill === 'true')) { workField.value = service.service_name; workField.dataset.serviceAutofill = 'true'; }
-                    } else {
-                        hiddenId.value = '';
-                        hiddenName.value = serviceInput.value.trim();
-                        if (serviceInput.value.trim() && (!complaintField.value.trim() || complaintField.dataset.serviceAutofill === 'true')) { complaintField.value = serviceInput.value.trim(); complaintField.dataset.serviceAutofill = 'true'; }
-                    }
-                });
-            }).catch(() => {});
+                if (!services.length) serviceRow.querySelector('[data-service-help]').textContent = 'No saved services yet. Choose Other to type a service and enter its price.';
+            }).catch(() => {
+                serviceRow.querySelector('[data-service-help]').textContent = 'Saved services could not be loaded. Choose Other to type a service and enter its price.';
+            });
             complaintField.addEventListener('input', () => { complaintField.dataset.serviceAutofill = 'false'; });
             workField?.addEventListener('input', () => { workField.dataset.serviceAutofill = 'false'; });
         }
@@ -156,6 +283,40 @@ document.addEventListener('DOMContentLoaded', () => {
             actions.append(cancel);
         });
     }
+    document.querySelectorAll('.pending-jobs-friendly .job-row-actions').forEach((actions) => {
+        const view = actions.querySelector('a[href*="section=jobcards-view"]');
+        const edit = actions.querySelector('a[href*="section=jobcards-edit"]');
+        const remove = actions.querySelector('form[action*="section=jobcards-delete"]');
+        const cancel = actions.querySelector('.job-cancel-button')?.closest('form');
+        const start = actions.querySelector('input[name="action"][value="start"]')?.closest('form');
+        const ongoing = Boolean(actions.closest('.ongoing-jobs-friendly'));
+        if (ongoing && view) {
+            view.textContent = 'View';
+            if (edit) edit.textContent = 'Edit';
+            if (remove) remove.querySelector('button').textContent = 'Delete';
+            actions.classList.add('ongoing-actions-inline');
+            return;
+        }
+        if (!view || (!start && !ongoing) || actions.querySelector('.pending-action-menu')) return;
+        const menu = document.createElement('details');
+        menu.className = 'pending-action-menu';
+        const summary = document.createElement('summary');
+        summary.textContent = 'More actions';
+        menu.appendChild(summary);
+        if (edit) { edit.textContent = 'Edit job'; menu.appendChild(edit); }
+        if (cancel) { cancel.querySelector('button').textContent = 'Cancel job'; menu.appendChild(cancel); }
+        if (remove) { remove.querySelector('button').textContent = 'Delete job'; menu.appendChild(remove); }
+        view.textContent = ongoing ? 'Open job' : 'View';
+        if (start) {
+            start.querySelector('button').textContent = 'Start job';
+            actions.appendChild(start);
+        }
+        actions.append(view, menu);
+        actions.classList.add('pending-actions-compact');
+        menu.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') { menu.open = false; summary.focus(); }
+        });
+    });
     const manualPartButton = document.querySelector('[data-add-manual]');
     if (manualPartButton) {
         manualPartButton.addEventListener('click', () => {
@@ -397,9 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
             removeForm.action = `index.php?page=admin&section=vehicles-remove&id=${vehicleId}`;
             removeForm.className = 'vehicle-remove-form';
             removeForm.innerHTML = `<input type="hidden" name="csrf_token" value="${actionData.csrf}"><button class="vehicle-action vehicle-remove" type="submit" title="Remove vehicle">×</button>`;
-            removeForm.addEventListener('submit', (event) => {
-                if (!window.confirm('Remove this vehicle from the active list?')) event.preventDefault();
-            });
+            removeForm.setAttribute('data-vehicle-remove-form', '');
+            removeForm.dataset.vehicleNumber = row.querySelector('td:nth-child(2)')?.textContent.trim() || 'this vehicle';
             actionCell.append(editLink, removeForm);
         });
     }

@@ -3,7 +3,20 @@ $paymentLabels = ['cash' => 'Cash', 'card' => 'Card', 'bank' => 'Bank Transfer',
 $isEdit = $section === 'other-income-edit';
 $knownIncomeType = in_array($input['title'], $types, true);
 ?>
-<div class="customer-modal-backdrop" role="presentation">
+<div class="other-income-list-background" inert aria-hidden="true">
+<?php
+(static function (array $categories): void {
+    $filters = other_income_filters();
+    if ((current_user()['role'] ?? '') === 'cashier') {
+        $filters['created_by'] = (int) (current_user()['id'] ?? 0);
+    }
+    $rows = other_income_rows($filters);
+    $summary = other_income_summary($filters);
+    require __DIR__ . '/other-income.php';
+})($categories);
+?>
+</div>
+<div class="customer-modal-backdrop other-income-form-backdrop" role="presentation">
     <section class="customer-modal other-income-modal" role="dialog" aria-modal="true" aria-labelledby="other-income-form-title">
         <div class="customer-modal-header">
             <div><span class="modal-eyebrow">Finance record</span><h2 id="other-income-form-title"><?= $isEdit ? 'Edit Other Income' : 'Add Other Income' ?></h2><span class="modal-code"><?= $isEdit ? 'Update this income entry' : 'Record a new income entry' ?></span></div>
