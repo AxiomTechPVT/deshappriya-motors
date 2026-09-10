@@ -13,6 +13,7 @@ $statusClass = static function (string $status): string {
         default => 'is-info',
     };
 };
+$periodLabel = ['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month'][$dashboard['period']] ?? 'Today';
 $jobTotal = array_sum($dashboard['job_status']);
 $incomeTotal = array_sum($dashboard['income']);
 $partsEnd = $incomeTotal ? ($dashboard['income']['parts'] / $incomeTotal) * 100 : 0;
@@ -45,18 +46,21 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
 
     <div class="dashboard-kpis">
         <?php foreach ([
-            ['Today\'s Sales', $currency($dashboard['sales']), 'Finalized invoice revenue', 'is-blue', '$', 'index.php?page=admin&section=reports-sales'],
-            ['Today\'s Payments', $currency($dashboard['payments']), 'Amount applied to invoices', 'is-green', '=', 'index.php?page=admin&section=reports-payments'],
-            ['Pending Payments', $currency($dashboard['pending']), 'Current invoice balance', 'is-orange', '!', 'index.php?page=admin&section=invoices'],
-            ['Ongoing Jobs', number_format($dashboard['ongoing']), 'Jobs in progress now', 'is-purple', 'W', 'index.php?page=admin&section=jobcards-ongoing'],
+            [$periodLabel . ' Sales', $currency($dashboard['sales']), 'Finalized invoice revenue', 'is-blue', '$', 'index.php?page=admin&section=reports-sales'],
+            [$periodLabel . ' Payments', $currency($dashboard['payments']), 'Amount applied to invoices', 'is-green', '=', 'index.php?page=admin&section=reports-payments'],
+            [$periodLabel . ' Pending Payments', $currency($dashboard['pending']), 'Invoice balance in selected period', 'is-orange', '!', 'index.php?page=admin&section=invoices'],
+            [$periodLabel . ' Ongoing Jobs', number_format($dashboard['ongoing']), 'Jobs in selected period', 'is-purple', 'W', 'index.php?page=admin&section=jobcards-ongoing'],
             ['Completed Jobs', number_format($dashboard['completed']), 'Completed in selected period', 'is-teal', 'V', 'index.php?page=admin&section=jobcards-completed'],
-            ['Low Stock Items', number_format($dashboard['low_stock']), 'At or below reorder level', 'is-red', 'Q', 'index.php?page=admin&section=stock-low'],
+            ['Low Stock Items', number_format($dashboard['low_stock']), 'Current stock alert', 'is-red', 'Q', 'index.php?page=admin&section=stock-low'],
+            [$periodLabel . ' Gross Profit', $currency($dashboard['gross_profit']), 'Sales + other income - all expenses', 'is-gold', 'P', 'index.php?page=admin&section=reports-profit-loss'],
+            [$periodLabel . ' Cash Settled', $currency($dashboard['cashier_settled']), 'Cash accepted from cashier handovers', 'is-green', 'C', 'index.php?page=admin&section=cashier-handovers'],
+            [$periodLabel . ' Cash Remaining', $currency($dashboard['cashier_remaining']), 'Expected cash not yet settled', 'is-orange', 'R', 'index.php?page=admin&section=cashier-handovers'],
         ] as $kpi): ?><a class="dashboard-kpi dashboard-kpi-link <?= $kpi[3] ?>" href="<?= e($kpi[5]) ?>"><span class="dashboard-kpi-icon"><?= e($kpi[4]) ?></span><div><small><?= e($kpi[0]) ?></small><strong><?= e($kpi[1]) ?></strong><span><?= e($kpi[2]) ?></span></div></a><?php endforeach; ?>
     </div>
 
     <div class="dashboard-chart-grid">
         <article class="dashboard-card sales-chart-card">
-            <div class="dashboard-card-heading"><div><h2>Sales Overview</h2><span>Finalized invoice revenue for the last 7 days</span></div><span class="dashboard-range">Last 7 Days</span></div>
+            <div class="dashboard-card-heading"><div><h2>Sales Overview</h2><span>Finalized invoice revenue for <?= e(strtolower($periodLabel)) ?></span></div><span class="dashboard-range"><?= e($periodLabel) ?></span></div>
             <div class="sales-chart" aria-label="Sales overview chart">
                 <div class="sales-axis"><span><?= e($currency($salesMax)) ?></span><span><?= e($currency($salesMax / 2)) ?></span><span>Rs. 0.00</span></div>
                 <div class="sales-bars">
@@ -66,7 +70,7 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
             <div class="chart-legend"><span><i class="legend-blue"></i>Job Card Sales</span><span><i class="legend-sky"></i>Quick Invoice Sales</span></div>
         </article>
         <article class="dashboard-card income-card">
-            <div class="dashboard-card-heading"><div><h2>Income Breakdown</h2><span>This month, excluding payment collections</span></div></div>
+            <div class="dashboard-card-heading"><div><h2>Income Breakdown</h2><span><?= e($periodLabel) ?>, excluding payment collections</span></div></div>
             <div class="donut-layout"><div class="dashboard-donut" style="--parts-end:<?= number_format($partsEnd, 2, '.', '') ?>%;--services-end:<?= number_format($servicesEnd, 2, '.', '') ?>%;--charges-end:<?= number_format($chargesEnd, 2, '.', '') ?>%"><div><strong><?= e($currency($incomeTotal)) ?></strong><span>Total Income</span></div></div><div class="donut-list"><?php foreach ([['Spare Parts Sales', $dashboard['income']['parts'], 'legend-blue'], ['Service Income', $dashboard['income']['services'], 'legend-green'], ['Special Charges', $dashboard['income']['charges'], 'legend-orange'], ['Other Income', $dashboard['income']['other'], 'legend-purple']] as $income): ?><div><span><i class="<?= e($income[2]) ?>"></i><?= e($income[0]) ?></span><b><?= e($percent((int) round($income[1]), (int) round($incomeTotal))) ?></b></div><?php endforeach; ?></div></div>
         </article>
         <article class="dashboard-card job-status-card">
@@ -87,5 +91,20 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
         <article class="dashboard-card dashboard-table-card"><div class="dashboard-card-heading"><h2>Today's Other Income</h2><a href="index.php?page=admin&amp;section=other-income">View All</a></div><div class="dashboard-table-wrap"><table class="dashboard-table"><thead><tr><th>#</th><th>Description</th><th>Amount (Rs.)</th></tr></thead><tbody><?php if (!$dashboard['other_income']): ?><tr><td colspan="3" class="dashboard-empty">No records found</td></tr><?php else: foreach ($dashboard['other_income'] as $index => $row): ?><tr><td><?= $index + 1 ?></td><td><?= e($row['title']) ?></td><td><?= e(number_format((float) $row['amount'], 2)) ?></td></tr><?php endforeach; endif; ?></tbody></table></div></article>
     </div>
 
-    <article class="dashboard-profit"><div><span class="eyebrow">Profit snapshot</span><h2>Today's Net Profit</h2><p>Sales - FIFO parts cost + other income - expenses</p></div><strong class="<?= $dashboard['net_profit'] < 0 ? 'is-negative' : '' ?>"><?= e($currency($dashboard['net_profit'])) ?></strong></article>
+    <article class="dashboard-profit"><div><span class="eyebrow">Profit snapshot</span><h2><?= e($periodLabel) ?> Gross Profit</h2><p>Sales + other income - FIFO parts cost - all expenses</p></div><strong class="<?= $dashboard['gross_profit'] < 0 ? 'is-negative' : '' ?>"><?= e($currency($dashboard['gross_profit'])) ?></strong></article>
 </section>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const period = <?= json_encode($periodLabel) ?>;
+    const kpis = document.querySelectorAll('.dashboard-kpi small');
+    [' Sales', ' Payments', ' Pending Payments', ' Ongoing Jobs'].forEach(function (suffix, index) {
+        if (kpis[index]) kpis[index].textContent = period + suffix;
+    });
+    const tableHeadings = document.querySelectorAll('.dashboard-table-card h2');
+    [0, 1, 2].forEach(function (index) {
+        if (tableHeadings[index]) tableHeadings[index].textContent = period + [' Appointments', ' Expenses', ' Other Income'][index];
+    });
+    const profitHeading = document.querySelector('.dashboard-profit h2');
+    if (profitHeading) profitHeading.textContent = period + ' Gross Profit';
+});
+</script>

@@ -407,6 +407,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    document.querySelectorAll('[data-modal-open]').forEach((button) => {
+        const modal = document.getElementById(button.dataset.modalOpen);
+        if (!modal) return;
+        const close = () => { modal.hidden = true; document.body.classList.remove('modal-open'); };
+        button.addEventListener('click', () => { modal.hidden = false; document.body.classList.add('modal-open'); });
+        modal.querySelectorAll('[data-modal-close]').forEach((closeButton) => closeButton.addEventListener('click', close));
+        modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
+    });
+
     const stockNote = document.querySelector('.preview-note p');
     if (stockNote && stockNote.textContent.includes('deducted from stock')) {
         stockNote.textContent = 'Parts are reserved from stock when added. Removing a part returns it to stock.';

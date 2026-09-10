@@ -62,12 +62,41 @@ function job_card_no(int $id): string
     return 'JC-' . date('ym') . '-' . str_pad((string)$id, 5, '0', STR_PAD_LEFT);
 }
 
+function available_mechanics(): array
+{
+    return database()->query("SELECT DISTINCT e.id,e.name,e.role_position
+        FROM employees e
+        JOIN employee_attendance a ON a.employee_id=e.id
+            AND a.id=(SELECT latest.id FROM employee_attendance latest
+                WHERE latest.employee_id=e.id AND latest.attendance_date<=CURDATE()
+                ORDER BY latest.attendance_date DESC,latest.id DESC LIMIT 1)
+            AND a.attendance_status IN ('present','half_day')
+        WHERE e.status='active'
+        ORDER BY e.name")->fetchAll();
+}
+
+function mechanic_is_available_today(int $mechanicId): bool
+{
+    if ($mechanicId < 1) return false;
+    $statement = database()->prepare("SELECT 1
+        FROM employees e
+        JOIN employee_attendance a ON a.employee_id=e.id
+            AND a.id=(SELECT latest.id FROM employee_attendance latest
+                WHERE latest.employee_id=e.id AND latest.attendance_date<=CURDATE()
+                ORDER BY latest.attendance_date DESC,latest.id DESC LIMIT 1)
+            AND a.attendance_status IN ('present','half_day')
+        WHERE e.id=:id AND e.status='active'
+        LIMIT 1");
+    $statement->execute(['id' => $mechanicId]);
+    return (bool)$statement->fetchColumn();
+}
+
 function job_card_lookup(): array
 {
     return [
         'customers' => database()->query("SELECT id,name,contact_number,email,address FROM customers WHERE status='active' ORDER BY name")->fetchAll(),
         'vehicles' => database()->query("SELECT v.*,c.name AS customer_name FROM vehicles v JOIN customers c ON c.id=v.customer_id WHERE v.status='active' ORDER BY v.vehicle_number")->fetchAll(),
-        'employees' => database()->query("SELECT id,name,role_position FROM employees WHERE status='active' ORDER BY name")->fetchAll(),
+        'employees' => available_mechanics(),
         'bays' => database()->query("SELECT bay_name FROM bays WHERE status='active' ORDER BY bay_name")->fetchAll(),
         'services' => database()->query("SELECT id,service_code,service_name,description,price FROM services WHERE status='active' ORDER BY service_name")->fetchAll(),
         'parts' => database()->query("SELECT id,part_code,part_name,stock_qty,selling_price FROM stock_items WHERE status='active' ORDER BY part_name")->fetchAll(),
@@ -225,7 +254,7 @@ function handle_job_card_request(string $section): void
     }
     if ($section === 'jobcards-start-options') {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['bays' => database()->query("SELECT bay_name FROM bays WHERE status='active' ORDER BY bay_name")->fetchAll(), 'mechanics' => database()->query("SELECT id,name FROM employees WHERE status='active' ORDER BY name")->fetchAll()]);
+        echo json_encode(['bays' => database()->query("SELECT bay_name FROM bays WHERE status='active' ORDER BY bay_name")->fetchAll(), 'mechanics' => available_mechanics()]);
         return;
     }
     if ($section === 'jobcards-payment-summary') {
@@ -378,8 +407,8 @@ function handle_job_card_request(string $section): void
             if (trim((string)($_POST['bay_name'] ?? '')) === '') {
                 $_POST['bay_name'] = (string)(database()->query("SELECT bay_name FROM bays WHERE status='active' ORDER BY bay_name LIMIT 1")->fetchColumn() ?: '');
             }
-            if ((int)($_POST['mechanic_id'] ?? 0) < 1) {
-                $_POST['mechanic_id'] = (int)(database()->query("SELECT id FROM employees WHERE status='active' ORDER BY name LIMIT 1")->fetchColumn() ?: 0);
+            if (!mechanic_is_available_today((int)($_POST['mechanic_id'] ?? 0))) {
+                $_POST['mechanic_id'] = 0;
             }
             if (trim((string)($_POST['bay_name'] ?? '')) === '' || (int)($_POST['mechanic_id'] ?? 0) < 1) {
                 $job = job_card_record($id);
@@ -515,6 +544,10 @@ function handle_job_card_request(string $section): void
         }
         if ($input['complaint'] === '' && $input['primary_service_name'] !== '') $input['complaint'] = $input['primary_service_name'];
         $errors = job_card_validate($input, ($_POST['save_mode'] ?? 'pending') === 'start');
+        if (($_POST['save_mode'] ?? 'pending') === 'start') {
+            if ($input['mechanic_id'] > 0 && !mechanic_is_available_today($input['mechanic_id'])) $errors[] = 'Only mechanics marked Present or Half Day today can be assigned.';
+            if ($input['mechanic_id'] < 1) $errors[] = 'Select a mechanic who is Present or Half Day today.';
+        }
         if (!$errors) {
             $pdo = database(); $pdo->beginTransaction();
             try {
