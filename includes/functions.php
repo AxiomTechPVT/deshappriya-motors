@@ -85,8 +85,8 @@ function admin_dashboard_data(string $period = 'today'): array
 {
     $period = in_array($period, ['today', 'week', 'month'], true) ? $period : 'today';
     $today = new DateTimeImmutable('today');
-    $rangeStart = $period === 'today' ? $today : ($period === 'week' ? $today->modify('-6 days') : $today->modify('first day of this month'));
-    $rangeEnd = $period === 'month' ? $today->modify('last day of this month') : $today;
+    $rangeStart = $period === 'today' ? $today : ($period === 'week' ? $today->modify('monday this week') : $today->modify('first day of this month'));
+    $rangeEnd = $today;
     $monthStart = $today->modify('first day of this month');
     $nextMonth = $monthStart->modify('+1 month');
     $pdo = database();
@@ -105,9 +105,12 @@ function admin_dashboard_data(string $period = 'today'): array
         'low_stock' => 0, 'sales_chart' => [], 'income' => ['parts' => 0.0, 'services' => 0.0, 'charges' => 0.0, 'other' => 0.0],
         'job_status' => ['pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0],
         'recent_jobs' => [], 'recent_invoices' => [], 'low_items' => [], 'appointments' => [], 'expenses' => [],
-        'other_income' => [], 'net_profit' => 0.0, 'gross_profit' => 0.0, 'cashier_settled' => 0.0, 'cashier_remaining' => 0.0, 'parts_cost' => 0.0, 'total_expenses' => 0.0,
+        'other_income' => [], 'net_profit' => 0.0, 'gross_profit' => 0.0, 'parts_profit' => 0.0, 'service_charge_income' => 0.0, 'cashier_settled' => 0.0, 'cashier_remaining' => 0.0, 'parts_cost' => 0.0, 'total_expenses' => 0.0,
     ];
     try {
+        if (!function_exists('ensure_stock_tables')) require_once __DIR__ . '/suppliers.php';
+        if (!function_exists('ensure_stock_tables')) require_once __DIR__ . '/stock.php';
+        if (!function_exists('ensure_job_card_tables')) require_once __DIR__ . '/job-cards.php';
         if (!function_exists('invoice_ensure_tables')) require_once __DIR__ . '/invoices.php';
         invoice_ensure_tables();
         if (!function_exists('ensure_cashier_register_table')) require_once __DIR__ . '/cashier-register.php';
@@ -132,6 +135,7 @@ function admin_dashboard_data(string $period = 'today'): array
         $incomeRows = $rows("SELECT ii.item_type, COALESCE(SUM(ii.line_total),0) amount FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE i.invoice_date BETWEEN :start AND :end AND i.payment_status <> 'cancelled' GROUP BY ii.item_type", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         foreach ($incomeRows as $row) { if (in_array($row['item_type'], ['stock_part', 'external_part'], true)) $empty['income']['parts'] += (float) $row['amount']; elseif ($row['item_type'] === 'service') $empty['income']['services'] += (float) $row['amount']; }
         $empty['income']['charges'] = $value("SELECT COALESCE(SUM(special_service_charge),0) FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status <> 'cancelled'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
+        $empty['service_charge_income'] = $empty['income']['charges'];
         $empty['income']['other'] = $value("SELECT COALESCE(SUM(amount),0) FROM other_income WHERE income_date BETWEEN :start AND :end", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $statusRows = $rows("SELECT SUM(status='pending' AND DATE(created_at) BETWEEN :start AND :end) pending, SUM(status='ongoing' AND DATE(created_at) BETWEEN :start2 AND :end2) ongoing, SUM(status='completed' AND DATE(COALESCE(completed_at,created_at)) BETWEEN :start3 AND :end3) completed, SUM(status='cancelled' AND DATE(COALESCE(updated_at,created_at)) BETWEEN :start4 AND :end4) cancelled FROM job_cards", ['start' => $dateParams['start'], 'end' => $dateParams['end'], 'start2' => $dateParams['start'], 'end2' => $dateParams['end'], 'start3' => $dateParams['start'], 'end3' => $dateParams['end'], 'start4' => $dateParams['start'], 'end4' => $dateParams['end']]);
         if ($statusRows) foreach (array_keys($empty['job_status']) as $status) $empty['job_status'][$status] = (int) ($statusRows[0][$status] ?? 0);
@@ -142,11 +146,11 @@ function admin_dashboard_data(string $period = 'today'): array
         $empty['appointments'] = $rows("SELECT a.appointment_time, a.status, c.name customer_name, v.vehicle_number FROM appointments a JOIN customers c ON c.id=a.customer_id LEFT JOIN vehicles v ON v.id=a.vehicle_id WHERE a.appointment_date BETWEEN :start AND :end ORDER BY a.appointment_date ASC, a.appointment_time ASC LIMIT 5", $rangeParams);
         $empty['expenses'] = $rows("SELECT expense_no, description, category, total_amount FROM expenses WHERE expense_date BETWEEN :start AND :end AND status <> 'cancelled' ORDER BY expense_date DESC, id DESC LIMIT 5", $rangeParams);
         $empty['other_income'] = $rows("SELECT title, amount FROM other_income WHERE income_date BETWEEN :start AND :end ORDER BY income_date DESC, id DESC LIMIT 5", $rangeParams);
-        $empty['total_expenses'] = $value("SELECT COALESCE(SUM(total_amount),0) FROM expenses WHERE expense_date BETWEEN :start AND :end AND status <> 'cancelled'", $rangeParams);
-        $empty['parts_cost'] = $value("SELECT COALESCE(SUM(total_cost),0) FROM stock_batch_consumptions WHERE DATE(created_at) BETWEEN :start AND :end AND reference_type IN ('sale','job_card_item')", $rangeParams);
-        $empty['parts_cost'] += $value("SELECT COALESCE(SUM(unit_cost * quantity),0) FROM expense_external_parts WHERE DATE(created_at) BETWEEN :start AND :end", $rangeParams);
-        $empty['gross_profit'] = $empty['sales'] - $empty['parts_cost'] + $empty['income']['other'] - $empty['total_expenses'];
-        $empty['net_profit'] = $empty['gross_profit'];
+        $empty['total_expenses'] = $value("SELECT COALESCE(SUM(total_amount),0) FROM expenses WHERE expense_type='general' AND expense_date BETWEEN :start AND :end AND status <> 'cancelled'", $rangeParams);
+        $empty['parts_cost'] = $value("SELECT COALESCE(SUM(ii.cost_amount),0) FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE ii.item_type IN ('stock_part','external_part') AND i.invoice_date BETWEEN :start AND :end AND i.payment_status <> 'cancelled'", $rangeParams);
+        $empty['parts_profit'] = $empty['income']['parts'] - $empty['parts_cost'];
+        $empty['gross_profit'] = $empty['sales'] - $empty['parts_cost'];
+        $empty['net_profit'] = $empty['gross_profit'] + $empty['income']['other'] - $empty['total_expenses'];
     } catch (Throwable $exception) {
         // Keep the administrator dashboard usable while an optional module table is being initialized.
     }

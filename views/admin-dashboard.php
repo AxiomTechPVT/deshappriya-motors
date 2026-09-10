@@ -52,7 +52,11 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
             [$periodLabel . ' Ongoing Jobs', number_format($dashboard['ongoing']), 'Jobs in selected period', 'is-purple', 'W', 'index.php?page=admin&section=jobcards-ongoing'],
             ['Completed Jobs', number_format($dashboard['completed']), 'Completed in selected period', 'is-teal', 'V', 'index.php?page=admin&section=jobcards-completed'],
             ['Low Stock Items', number_format($dashboard['low_stock']), 'Current stock alert', 'is-red', 'Q', 'index.php?page=admin&section=stock-low'],
-            [$periodLabel . ' Gross Profit', $currency($dashboard['gross_profit']), 'Sales + other income - all expenses', 'is-gold', 'P', 'index.php?page=admin&section=reports-profit-loss'],
+            [$periodLabel . ' Gross Profit', $currency($dashboard['gross_profit']), 'Sales revenue - cost of parts', 'is-gold', 'P', 'index.php?page=admin&section=reports-profit-loss'],
+            [$periodLabel . ' Spare Parts Profit', $currency($dashboard['parts_profit']), 'Parts sales - parts cost', 'is-blue', 'S', 'index.php?page=admin&section=reports-profit-loss'],
+            [$periodLabel . ' Service Charges', $currency($dashboard['service_charge_income']), 'Service charge income', 'is-green', 'C', 'index.php?page=admin&section=reports-profit-loss'],
+            [$periodLabel . ' Other Income', $currency($dashboard['income']['other']), 'Income outside invoices', 'is-purple', 'O', 'index.php?page=admin&section=other-income'],
+            [$periodLabel . ' Expenses', $currency($dashboard['total_expenses']), 'General operating expenses', 'is-red', 'E', 'index.php?page=admin&section=expenses'],
             [$periodLabel . ' Cash Settled', $currency($dashboard['cashier_settled']), 'Cash accepted from cashier handovers', 'is-green', 'C', 'index.php?page=admin&section=cashier-handovers'],
             [$periodLabel . ' Cash Remaining', $currency($dashboard['cashier_remaining']), 'Expected cash not yet settled', 'is-orange', 'R', 'index.php?page=admin&section=cashier-handovers'],
         ] as $kpi): ?><a class="dashboard-kpi dashboard-kpi-link <?= $kpi[3] ?>" href="<?= e($kpi[5]) ?>"><span class="dashboard-kpi-icon"><?= e($kpi[4]) ?></span><div><small><?= e($kpi[0]) ?></small><strong><?= e($kpi[1]) ?></strong><span><?= e($kpi[2]) ?></span></div></a><?php endforeach; ?>
@@ -91,7 +95,7 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
         <article class="dashboard-card dashboard-table-card"><div class="dashboard-card-heading"><h2>Today's Other Income</h2><a href="index.php?page=admin&amp;section=other-income">View All</a></div><div class="dashboard-table-wrap"><table class="dashboard-table"><thead><tr><th>#</th><th>Description</th><th>Amount (Rs.)</th></tr></thead><tbody><?php if (!$dashboard['other_income']): ?><tr><td colspan="3" class="dashboard-empty">No records found</td></tr><?php else: foreach ($dashboard['other_income'] as $index => $row): ?><tr><td><?= $index + 1 ?></td><td><?= e($row['title']) ?></td><td><?= e(number_format((float) $row['amount'], 2)) ?></td></tr><?php endforeach; endif; ?></tbody></table></div></article>
     </div>
 
-    <article class="dashboard-profit"><div><span class="eyebrow">Profit snapshot</span><h2><?= e($periodLabel) ?> Gross Profit</h2><p>Sales + other income - FIFO parts cost - all expenses</p></div><strong class="<?= $dashboard['gross_profit'] < 0 ? 'is-negative' : '' ?>"><?= e($currency($dashboard['gross_profit'])) ?></strong></article>
+    <article class="dashboard-profit"><div><span class="eyebrow">Profit snapshot</span><h2><?= e($periodLabel) ?> Gross Profit</h2><p>Sales revenue - cost of parts</p></div><strong class="<?= $dashboard['gross_profit'] < 0 ? 'is-negative' : '' ?>"><?= e($currency($dashboard['gross_profit'])) ?></strong></article>
 </section>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

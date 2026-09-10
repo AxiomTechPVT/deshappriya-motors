@@ -421,7 +421,7 @@ if ($isSalesReport) {
 <?php elseif (!empty($report['chart'])): ?>
     <section class="admin-panel report-chart-panel">
         <div class="panel-heading">
-            <h2><?= e($section === 'reports-profit-loss' || $section === 'reports-today-profit' ? 'Income vs Expenses' : 'Trend Chart') ?></h2>
+            <h2><?= e($section === 'reports-profit-loss' || $section === 'reports-today-profit' ? 'Revenue, Parts Cost & Gross Profit' : 'Trend Chart') ?></h2>
         </div>
         <div class="report-chart-wrap">
             <?= $report['chart'] ?>

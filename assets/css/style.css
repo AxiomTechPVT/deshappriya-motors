@@ -675,3 +675,32 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
 .account-profile-layout{max-width:1040px}.account-alert{max-width:1040px;margin-top:20px}.account-password-card{max-width:1040px;margin-top:18px;padding:28px}.account-side-copy{margin:22px 0;color:#d2deed;font-size:12px;line-height:1.6}.account-password-link{color:#102a56;font-weight:700}.account-password-link:hover{color:#155eef}
 @media(max-width:575px){.account-password-card{padding:20px 16px}.account-profile-layout{margin-top:18px}}
 .action-confirm-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:rgba(3,18,38,.52)}.action-confirm-dialog{width:min(100%,420px);padding:28px;border:1px solid #dbe4f0;border-radius:16px;background:#fff;box-shadow:0 20px 60px rgba(3,18,38,.22);text-align:center;color:#102a56}.action-confirm-mark{display:grid;place-items:center;width:42px;height:42px;margin:0 auto 14px;border-radius:50%;background:#fff1d8;color:#b54708;font-size:22px;font-weight:900}.action-confirm-dialog h2{margin:0 0 8px;font-size:20px}.action-confirm-dialog p{margin:0;color:#667085;font-size:13px;line-height:1.5}.action-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:22px}.action-confirm-actions .btn{min-width:90px}
+
+/* Make both navigation variants easier to scan without changing their routes. */
+.sidebar-nav { padding-bottom: 28px; }
+.sidebar-nav > [data-sidebar-items] { display: grid; gap: 3px; }
+.nav-link, .nav-group summary { transition: background .18s ease, color .18s ease, transform .18s ease; }
+.nav-link.active { background: linear-gradient(90deg, rgba(255,255,255,.14), rgba(255,255,255,.06)); color: #fff; box-shadow: inset 3px 0 #e63946; }
+.nav-link.active span, .nav-group[open] summary .nav-group-icon { color: #ff5060; }
+.admin-sidebar .nav-group summary { display: flex; align-items: center; gap: 9px; }
+.admin-sidebar .nav-group summary:after { margin-left: auto; }
+.admin-sidebar .nav-group-icon { width: 14px; color: #e63946; font-size: 9px; text-align: center; }
+.admin-sidebar .nav-sublink { border-left: 1px solid rgba(255,255,255,.13); margin-left: 18px; padding-left: 15px; }
+.admin-sidebar .nav-sublink.active { background: rgba(255,255,255,.11); color: #fff; box-shadow: inset 2px 0 #e63946; }
+.sidebar-bottom { background: rgba(2, 12, 27, .18); }
+.account-card { border: 1px solid rgba(255,255,255,.08); }
+.side-action { border-radius: 8px; margin-top: 3px; transition: background .18s ease, color .18s ease; }
+.side-action:hover { background: rgba(255,255,255,.08); }
+.logout-button { color: #ffb4b9; border: 1px solid rgba(230,57,70,.35); }
+.logout-button:hover { background: rgba(230,57,70,.16); color: #fff; }
+.cashier-sidebar { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
+.cashier-sidebar .sidebar-nav { min-height: auto; overflow: visible; flex: 0 0 auto; }
+.cashier-sidebar::-webkit-scrollbar { width: 5px; }
+.cashier-sidebar::-webkit-scrollbar-track { background: transparent; }
+.cashier-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 99px; }
+.cashier-sidebar .sidebar-bottom { flex-shrink: 0; }
+@media (max-width: 991px) {
+    .sidebar { width: min(310px, 88vw); }
+    .sidebar-nav { padding-top: 24px; }
+    .sidebar.open { box-shadow: 16px 0 42px rgba(3,18,38,.3); }
+}

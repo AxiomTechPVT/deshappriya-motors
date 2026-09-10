@@ -70,7 +70,7 @@ function report_date_bounds(string $mode, ?string $from, ?string $to): array
 
     if ($mode === 'week') {
         $start = date('Y-m-d', strtotime('monday this week'));
-        $end = date('Y-m-d', strtotime('sunday this week'));
+        $end = $today;
         return ['from' => $start, 'to' => $end, 'label' => 'This Week'];
     }
 
@@ -79,11 +79,7 @@ function report_date_bounds(string $mode, ?string $from, ?string $to): array
     }
 
     $start = date('Y-m-01');
-    $end = date('Y-m-t');
-    if ($mode === 'week') {
-        $start = date('Y-m-d', strtotime('monday this week'));
-        $end = date('Y-m-d', strtotime('sunday this week'));
-    }
+    $end = $today;
     return ['from' => $start, 'to' => $end, 'label' => 'This Month'];
 }
 
@@ -1164,15 +1160,12 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             ['from_date' => $dateFrom, 'to_date' => $dateTo]
         );
         $fifoCost = report_sql_value(
-            'SELECT COALESCE(SUM(sbc.total_cost),0)
-             FROM stock_batch_consumptions sbc
-             WHERE sbc.created_at BETWEEN :from_date AND :to_date_end',
-            ['from_date' => $dateFrom, 'to_date_end' => $dateTo . ' 23:59:59']
-        ) + report_sql_value(
-            'SELECT COALESCE(SUM(eep.total_cost),0)
-             FROM expense_external_parts eep
-             JOIN expenses e ON e.id = eep.expense_id
-             WHERE e.expense_type = "external_part" AND e.status <> "cancelled" AND e.expense_date BETWEEN :from_date AND :to_date',
+            'SELECT COALESCE(SUM(ii.cost_amount),0)
+             FROM invoice_items ii
+             JOIN invoices i ON i.id = ii.invoice_id
+             WHERE ii.item_type IN ("stock_part","external_part")
+               AND i.payment_status <> "cancelled"
+               AND i.invoice_date BETWEEN :from_date AND :to_date',
             ['from_date' => $dateFrom, 'to_date' => $dateTo]
         );
         $operatingExpenses = report_sql_value(
@@ -1182,19 +1175,20 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             ['from_date' => $dateFrom, 'to_date' => $dateTo]
         );
         $totalIncome = $sales + $otherIncome;
-        $totalExpenses = $fifoCost + $operatingExpenses;
-        // Gross profit is the final amount after every recorded income and expense.
-        $grossProfit = $totalIncome - $totalExpenses;
+        $totalExpenses = $operatingExpenses;
+        $grossProfit = $sales - $fifoCost;
+        $netProfit = $grossProfit + $otherIncome - $operatingExpenses;
         $cards = [
             report_summary_card('Sales Revenue', $sales, 'blue'),
             report_summary_card('Cost of Parts', $fifoCost, 'red'),
             report_summary_card('Gross Profit', $grossProfit, 'green'),
             report_summary_card('Other Income', $otherIncome, 'orange'),
             report_summary_card('Total Expenses', $totalExpenses, 'purple'),
+            report_summary_card('Net Profit', $netProfit, 'navy'),
         ];
         $chart = report_svg_bars([
-            ['label' => 'Total Income', 'value' => $totalIncome, 'color' => '#155eef'],
-            ['label' => 'Total Expenses', 'value' => $totalExpenses, 'color' => '#f04438'],
+            ['label' => 'Sales Revenue', 'value' => $sales, 'color' => '#155eef'],
+            ['label' => 'Cost of Parts', 'value' => $fifoCost, 'color' => '#f04438'],
             ['label' => 'Gross Profit', 'value' => $grossProfit, 'color' => '#12b76a'],
         ]);
         $columns = [
@@ -1212,6 +1206,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             ['label' => 'Total Income', 'amount' => report_money($totalIncome)],
             ['label' => 'Total Expenses', 'amount' => report_money($totalExpenses)],
             ['label' => 'Gross Profit', 'amount' => report_money($grossProfit)],
+            ['label' => 'Net Profit', 'amount' => report_money($netProfit)],
         ];
         $totalRows = count($rows);
         $limit = 100;
@@ -1225,11 +1220,13 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             ['section' => 'Other Income', 'items' => [['label' => 'Other Income', 'value' => $otherIncome]]],
             ['section' => 'Cost', 'items' => [['label' => 'Parts Cost', 'value' => $fifoCost]]],
             ['section' => 'Expenses', 'items' => [
-                ['label' => 'Parts Cost', 'value' => $fifoCost],
                 ['label' => 'General Expenses', 'value' => $operatingExpenses],
                 ['label' => 'Total Expenses', 'value' => $totalExpenses],
             ]],
-            ['section' => 'Gross Profit', 'items' => [['label' => 'Gross Profit', 'value' => $grossProfit]]],
+            ['section' => 'Profit', 'items' => [
+                ['label' => 'Gross Profit', 'value' => $grossProfit],
+                ['label' => 'Net Profit', 'value' => $netProfit],
+            ]],
         ];
         if ($section === 'reports-today-profit') {
             $extra['mini_tables'] = [

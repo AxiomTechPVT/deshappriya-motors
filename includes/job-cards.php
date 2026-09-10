@@ -438,6 +438,11 @@ function handle_job_card_request(string $section): void
                 if (!$job) { http_response_code(404); exit('Job card not found.'); }
                 if ($job['status'] !== 'ongoing') { exit('Job card could not be started.'); }
             }
+            if ($status === 'completed') {
+                // Create the linked invoice before redirecting so dashboards and invoice lists update immediately.
+                require_once __DIR__ . '/invoices.php';
+                invoice_ensure_tables();
+            }
             flash('success', 'Job card status updated successfully.');
         }
         redirect('index.php?page=admin&section=jobcards-' . ($status === 'ongoing' ? 'ongoing' : ($status === 'completed' ? 'completed' : 'pending')));
