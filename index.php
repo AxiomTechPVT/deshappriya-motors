@@ -117,7 +117,9 @@ if ($page === 'admin') {
         $cashierSections = ['customers', 'customers-add', 'vehicles', 'vehicles-add', 'jobcards-pending', 'jobcards-ongoing', 'jobcards-completed', 'estimates', 'invoices-mine', 'invoices', 'invoices-quick', 'invoices-view', 'invoices-thermal', 'invoices-payment', 'invoices-receipt', 'reports-payments', 'cashier-register', 'cashier-advance-requests', 'expenses', 'expenses-add', 'expenses-view', 'other-income', 'other-income-add', 'other-income-view', 'employees-advances', 'employees-attendance', 'stock', 'stock-low', 'services', 'appointments'];
         // Customer list actions use the existing customer handlers for both roles.
         $customerActions = ['customers-view', 'customers-edit', 'customers-deactivate', 'customers-export'];
-        $allowed = in_array($section, $cashierSections, true) || in_array($section, $customerActions, true) || str_starts_with($section, 'invoices-') || str_starts_with($section, 'jobcards-');
+        // Vehicle list actions reuse the existing history, edit, and removal handlers.
+        $vehicleActions = ['vehicles-view', 'vehicles-edit', 'vehicles-remove'];
+        $allowed = in_array($section, $cashierSections, true) || in_array($section, $customerActions, true) || in_array($section, $vehicleActions, true) || str_starts_with($section, 'invoices-') || str_starts_with($section, 'jobcards-');
         if (!$allowed) {
             redirect('index.php?page=cashier');
         }

@@ -722,3 +722,8 @@ body { margin:0; background:#f4f6f8; color:var(--navy); font-family:system-ui,-a
     .sidebar-nav { padding-top: 24px; }
     .sidebar.open { box-shadow: 16px 0 42px rgba(3,18,38,.3); }
 }
+
+.vehicle-update-confirm { width:min(440px,calc(100% - 32px)); border:1px solid #e4e7ec; border-radius:12px; padding:24px; color:#101828; box-shadow:0 24px 70px rgba(16,24,40,.28); }
+.vehicle-update-confirm::backdrop { background:rgba(3,18,38,.48); }
+.vehicle-update-confirm h2 { font-size:20px; margin:0 0 12px; }
+.vehicle-update-confirm p { margin:0 0 20px; }

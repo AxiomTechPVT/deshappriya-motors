@@ -1,4 +1,105 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const vehicleRemoveDialog = document.querySelector('[data-vehicle-remove-confirm]');
+    if (vehicleRemoveDialog) {
+        let pendingRemoveForm = null;
+        const yesButton = vehicleRemoveDialog.querySelector('[data-vehicle-remove-yes]');
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (!form.matches('[data-vehicle-remove-form]')) return;
+            event.preventDefault();
+            if (vehicleRemoveDialog.open) return;
+            pendingRemoveForm = form;
+            yesButton.disabled = false;
+            vehicleRemoveDialog.querySelector('[data-vehicle-remove-message]').textContent =
+                'Remove ' + form.dataset.vehicleNumber + ' from the active list?';
+            vehicleRemoveDialog.showModal();
+        });
+        vehicleRemoveDialog.querySelector('[data-vehicle-remove-no]').addEventListener('click', () => vehicleRemoveDialog.close());
+        vehicleRemoveDialog.addEventListener('close', () => { pendingRemoveForm = null; });
+        yesButton.addEventListener('click', () => {
+            if (!pendingRemoveForm || yesButton.disabled) return;
+            yesButton.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_remove';
+            confirmation.value = 'yes';
+            pendingRemoveForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(pendingRemoveForm);
+        });
+    }
+    const customerStatusDialog = document.querySelector('[data-customer-status-confirm]');
+    if (customerStatusDialog) {
+        let pendingStatusForm = null;
+        const yesButton = customerStatusDialog.querySelector('[data-customer-status-yes]');
+        document.querySelectorAll('[data-customer-status-form]').forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                if (customerStatusDialog.open) return;
+                pendingStatusForm = form;
+                yesButton.disabled = false;
+                const action = form.dataset.customerStatus === 'active' ? 'deactivate' : 'activate';
+                customerStatusDialog.querySelector('[data-customer-status-message]').textContent =
+                    'Are you sure you want to ' + action + ' ' + form.dataset.customerName + '?';
+                customerStatusDialog.showModal();
+            });
+        });
+        customerStatusDialog.querySelector('[data-customer-status-no]').addEventListener('click', () => customerStatusDialog.close());
+        customerStatusDialog.addEventListener('close', () => { pendingStatusForm = null; });
+        yesButton.addEventListener('click', () => {
+            if (!pendingStatusForm || yesButton.disabled) return;
+            yesButton.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_status';
+            confirmation.value = 'yes';
+            pendingStatusForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(pendingStatusForm);
+        });
+    }
+    const vehicleUpdateForm = document.querySelector('[data-vehicle-update-form]');
+    const vehicleUpdateDialog = document.querySelector('[data-vehicle-update-confirm]');
+    if (vehicleUpdateForm && vehicleUpdateDialog) {
+        vehicleUpdateForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!vehicleUpdateDialog.open) vehicleUpdateDialog.showModal();
+        });
+        vehicleUpdateDialog.querySelector('[data-vehicle-update-no]').addEventListener('click', () => vehicleUpdateDialog.close());
+        vehicleUpdateDialog.querySelector('[data-vehicle-update-yes]').addEventListener('click', (event) => {
+            if (!vehicleUpdateForm.reportValidity()) {
+                vehicleUpdateDialog.close();
+                return;
+            }
+            event.currentTarget.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_update';
+            confirmation.value = 'yes';
+            vehicleUpdateForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(vehicleUpdateForm);
+        });
+    }
+    const customerUpdateForm = document.querySelector('[data-customer-update-form]');
+    const customerUpdateDialog = document.querySelector('[data-customer-update-confirm]');
+    if (customerUpdateForm && customerUpdateDialog) {
+        customerUpdateForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!customerUpdateDialog.open) customerUpdateDialog.showModal();
+        });
+        customerUpdateDialog.querySelector('[data-customer-update-no]').addEventListener('click', () => customerUpdateDialog.close());
+        customerUpdateDialog.querySelector('[data-customer-update-yes]').addEventListener('click', (event) => {
+            if (!customerUpdateForm.reportValidity()) {
+                customerUpdateDialog.close();
+                return;
+            }
+            event.currentTarget.disabled = true;
+            const confirmation = document.createElement('input');
+            confirmation.type = 'hidden';
+            confirmation.name = 'confirm_update';
+            confirmation.value = 'yes';
+            customerUpdateForm.appendChild(confirmation);
+            HTMLFormElement.prototype.submit.call(customerUpdateForm);
+        });
+    }
     const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
     const jobVehicle = document.querySelector('#job-vehicle');
     if (jobVehicle) {
@@ -372,9 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
             removeForm.action = `index.php?page=admin&section=vehicles-remove&id=${vehicleId}`;
             removeForm.className = 'vehicle-remove-form';
             removeForm.innerHTML = `<input type="hidden" name="csrf_token" value="${actionData.csrf}"><button class="vehicle-action vehicle-remove" type="submit" title="Remove vehicle">×</button>`;
-            removeForm.addEventListener('submit', (event) => {
-                if (!window.confirm('Remove this vehicle from the active list?')) event.preventDefault();
-            });
+            removeForm.setAttribute('data-vehicle-remove-form', '');
+            removeForm.dataset.vehicleNumber = row.querySelector('td:nth-child(2)')?.textContent.trim() || 'this vehicle';
             actionCell.append(editLink, removeForm);
         });
     }
