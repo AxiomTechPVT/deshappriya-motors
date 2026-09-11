@@ -38,7 +38,14 @@ function customer_where(array $filters, array &$params): string
 function customer_query(array $filters, bool $count = false): array|int
 {
     $params = []; $where = customer_where($filters, $params);
-    $sql = $count ? "SELECT COUNT(*) FROM customers{$where}" : "SELECT id, customer_code, customer_type, name, contact_number, email, status, created_at FROM customers{$where} ORDER BY id DESC LIMIT :limit OFFSET :offset";
+    $invoiceColumns = '0 AS total_invoices, 0 AS total_due';
+    if (!$count && database()->query("SHOW TABLES LIKE 'invoices'")->fetchColumn()) {
+        $invoiceColumns = "(SELECT COUNT(*) FROM invoices i WHERE i.customer_id = customers.id AND i.payment_status <> 'cancelled') AS total_invoices,
+            (SELECT COALESCE(SUM(i.balance_amount), 0) FROM invoices i WHERE i.customer_id = customers.id AND i.payment_status <> 'cancelled') AS total_due";
+    }
+    $sql = $count ? "SELECT COUNT(*) FROM customers{$where}" : "SELECT id, customer_code, customer_type, name, contact_number, email, status, created_at,
+        (SELECT COUNT(*) FROM vehicles v WHERE v.customer_id = customers.id) AS total_vehicles,
+        {$invoiceColumns} FROM customers{$where} ORDER BY id DESC LIMIT :limit OFFSET :offset";
     $statement = database()->prepare($sql);
     foreach ($params as $key => $value) $statement->bindValue(':' . $key, $value);
     if (!$count) { $statement->bindValue(':limit', max(1, (int) $filters['per_page']), PDO::PARAM_INT); $statement->bindValue(':offset', max(0, ($filters['page'] - 1) * $filters['per_page']), PDO::PARAM_INT); }

@@ -103,7 +103,7 @@ function job_card_lookup(): array
     ];
 }
 
-function job_card_rows(string $status, array $filters = []): array
+function job_card_rows(string $status, array $filters = [], bool $count = false): array|int
 {
     $where = ['j.status=:status']; $params = ['status' => $status];
     if (($filters['search'] ?? '') !== '') { $where[] = '(j.job_card_no LIKE :search OR v.vehicle_number LIKE :search OR c.name LIKE :search)'; $params['search'] = '%' . $filters['search'] . '%'; }
@@ -112,9 +112,19 @@ function job_card_rows(string $status, array $filters = []): array
     if (($filters['priority'] ?? '') !== '') { $where[] = 'j.priority=:priority'; $params['priority'] = $filters['priority']; }
     if (($filters['date_from'] ?? '') !== '') { $where[] = 'DATE(j.created_at)>=:date_from'; $params['date_from'] = $filters['date_from']; }
     if (($filters['date_to'] ?? '') !== '') { $where[] = 'DATE(j.created_at)<=:date_to'; $params['date_to'] = $filters['date_to']; }
-    $statement = database()->prepare("SELECT j.*,c.name AS customer_name,c.contact_number,v.vehicle_number,v.make,v.model,v.vehicle_type,v.colour,v.year,v.current_mileage,e.name AS mechanic_name,(SELECT COUNT(*) FROM job_card_items ji WHERE ji.job_card_id=j.id AND ji.item_type <> 'service') AS item_count FROM job_cards j JOIN customers c ON c.id=j.customer_id LEFT JOIN vehicles v ON v.id=j.vehicle_id LEFT JOIN employees e ON e.id=j.mechanic_id WHERE ".implode(' AND ',$where)." ORDER BY j.id DESC");
+    $select = $count ? 'COUNT(*)' : "j.*,c.name AS customer_name,c.contact_number,v.vehicle_number,v.make,v.model,v.vehicle_type,v.colour,v.year,v.current_mileage,e.name AS mechanic_name,(SELECT COUNT(*) FROM job_card_items ji WHERE ji.job_card_id=j.id AND ji.item_type <> 'service') AS item_count";
+    $sql = "SELECT {$select} FROM job_cards j JOIN customers c ON c.id=j.customer_id LEFT JOIN vehicles v ON v.id=j.vehicle_id LEFT JOIN employees e ON e.id=j.mechanic_id WHERE ".implode(' AND ',$where);
+    if (!$count) {
+        $sql .= ' ORDER BY j.id DESC';
+        if (isset($filters['per_page'])) {
+            $limit = max(1, (int)$filters['per_page']);
+            $offset = (max(1, (int)($filters['page'] ?? 1)) - 1) * $limit;
+            $sql .= " LIMIT {$limit} OFFSET {$offset}";
+        }
+    }
+    $statement = database()->prepare($sql);
     $statement->execute($params);
-    return $statement->fetchAll();
+    return $count ? (int)$statement->fetchColumn() : $statement->fetchAll();
 }
 
 function job_card_record(int $id): ?array
@@ -377,6 +387,9 @@ function handle_job_card_request(string $section): void
             $paid = (float)$job['paid_amount'] + $amountApplied; $newBalance = max(0, (float)$job['total_amount'] - $paid);
             $pdo->prepare('UPDATE job_cards SET paid_amount=:paid,balance_amount=:balance,payment_method=:method,status="completed",completed_at=COALESCE(completed_at,NOW()) WHERE id=:id')->execute(['paid'=>$paid,'balance'=>$newBalance,'method'=>$method,'id'=>$id]);
             $pdo->commit();
+            // Generate the invoice now so customer totals update before the invoice list is opened.
+            require_once __DIR__ . '/invoices.php';
+            invoice_ensure_tables();
             flash('success', 'Payment recorded and receipt created.'); redirect('index.php?page=admin&section=jobcards-receipt&id='.$paymentId);
         } catch (Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); flash('error', 'Payment could not be recorded: ' . $exception->getMessage()); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
     }
@@ -599,6 +612,20 @@ function handle_job_card_request(string $section): void
     }
     $status = ['jobcards-pending' => 'pending', 'jobcards-ongoing' => 'ongoing', 'jobcards-completed' => 'completed'][$section] ?? 'pending';
     $filters = ['search'=>trim((string)($_GET['search']??'')),'mechanic_id'=>max(0,(int)($_GET['mechanic_id']??0)),'bay_name'=>trim((string)($_GET['bay_name']??'')),'priority'=>in_array($_GET['priority']??'', ['low','normal','high','urgent'], true)?$_GET['priority']:'','date_from'=>trim((string)($_GET['date_from']??'')),'date_to'=>trim((string)($_GET['date_to']??''))];
-    $rows = job_card_rows($status,$filters); $lookups = job_card_lookup(); $title = ucfirst($status) . ' Job Cards'; $sectionForHeader = $section;
+    $currentPage = 1; $pages = 1; $offset = 0;
+    if ($status === 'completed') {
+        $total = job_card_rows($status, $filters, true);
+        $pages = max(1, (int)ceil($total / 5));
+        $currentPage = min($pages, max(1, (int)($_GET['p'] ?? 1)));
+        $filters['per_page'] = 5;
+        $filters['page'] = $currentPage;
+        $offset = ($currentPage - 1) * 5;
+    }
+    $rows = job_card_rows($status,$filters);
+    if ($status !== 'completed') $total = count($rows);
+    $paginationFilters = $filters;
+    unset($paginationFilters['page'], $paginationFilters['per_page']);
+    $paginationUrl = 'index.php?' . http_build_query(array_merge(['page'=>'admin', 'section'=>$section], $paginationFilters));
+    $lookups = job_card_lookup(); $title = ucfirst($status) . ' Job Cards'; $sectionForHeader = $section;
     require __DIR__ . '/../includes/header.php'; require __DIR__ . '/../views/jobcards.php'; require __DIR__ . '/../includes/footer.php';
 }
