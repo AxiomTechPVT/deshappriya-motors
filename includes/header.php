@@ -12,7 +12,7 @@
     <?php if (($section ?? '') === 'jobcards-edit'): ?><link href="assets/css/jobcard-edit.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-edit.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (in_array(($section ?? ''), ['jobcards-view', 'jobcards-receipt'], true)): ?><link href="assets/css/jobcard-payment.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-payment.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (($section ?? '') === 'jobcards-view'): ?><link href="assets/css/jobcard-payment-calc.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/jobcard-payment-calc.css') ?>" rel="stylesheet"><?php endif; ?>
-    <?php if (($section ?? '') === 'jobcards-receipt'): ?><link href="assets/css/thermal-receipt.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/thermal-receipt.css') ?>" rel="stylesheet"><?php endif; ?>
+    <?php if (in_array(($section ?? ''), ['jobcards-receipt', 'invoices-receipt'], true)): ?><link href="assets/css/thermal-receipt.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/thermal-receipt.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (($section ?? '') === 'jobcards-receipt'): ?><link href="assets/css/receipt-lines.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/receipt-lines.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if (strpos((string) ($section ?? ''), 'invoices') === 0): ?><link href="assets/css/invoices.css?v=<?= (int) filemtime(__DIR__ . '/../assets/css/invoices.css') ?>" rel="stylesheet"><?php endif; ?>
 </head>

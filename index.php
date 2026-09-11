@@ -224,11 +224,16 @@ if ($page === 'admin') {
         handle_job_card_request($section);
         exit;
     }
-    if (str_starts_with($section, 'invoices')) {
+    if ($section === 'payments' || str_starts_with($section, 'invoices')) {
         require_once __DIR__ . '/includes/suppliers.php';
         require_once __DIR__ . '/includes/stock.php';
         require_once __DIR__ . '/includes/job-cards.php';
         require_once __DIR__ . '/includes/invoices.php';
+        if ($section === 'payments') {
+            require_once __DIR__ . '/includes/payments.php';
+            handle_payments_request();
+            exit;
+        }
         handle_invoice_request($section);
         exit;
     }

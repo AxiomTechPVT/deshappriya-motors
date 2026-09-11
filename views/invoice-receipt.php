@@ -1,6 +1,6 @@
 <div class="page-heading invoice-heading no-print">
     <div><h1>Payment Receipt <span><?= e($payment['payment_no']) ?></span></h1><nav class="job-breadcrumb"><a href="index.php?page=admin">Dashboard</a><span>&rsaquo;</span><a href="index.php?page=admin&amp;section=invoices">Invoices</a><span>&rsaquo;</span><strong>Receipt</strong></nav></div>
-    <div class="invoice-heading-actions"><a class="btn btn-light" href="index.php?page=admin&amp;section=invoices-view&amp;id=<?= (int)$payment['invoice_id'] ?>">Back to Invoice</a><button class="btn btn-primary" type="button" onclick="window.print()">Print Receipt</button></div>
+    <div class="invoice-heading-actions"><?php if ((current_user()['role'] ?? '') === 'administrator'): ?><a class="btn btn-light" href="index.php?page=admin&amp;section=payments&amp;customer_id=<?= (int)$payment['customer_id'] ?>">Back to Payments</a><?php endif; ?><a class="btn btn-light" href="index.php?page=admin&amp;section=invoices-view&amp;id=<?= (int)$payment['invoice_id'] ?>">Back to Invoice</a><button class="btn btn-primary" type="button" onclick="window.print()">Print Receipt</button></div>
 </div>
 <main class="invoice-receipt thermal-receipt">
     <header class="receipt-brand">
