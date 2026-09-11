@@ -21,7 +21,7 @@ function ensure_vehicles_table(): void
 function customer_filters(): array
 {
     $requestedPerPage = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
-    return ['search'=>trim((string) ($_GET['search'] ?? '')), 'status'=>in_array($_GET['status'] ?? '', ['active','inactive'], true) ? $_GET['status'] : '', 'type'=>in_array($_GET['type'] ?? '', ['individual','company','walk_in'], true) ? $_GET['type'] : '', 'from'=>preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : '', 'to'=>preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '') ? $_GET['to'] : '', 'per_page'=>in_array($requestedPerPage, [10,25,50], true) ? $requestedPerPage : 10, 'page'=>max(1, (int) ($_GET['p'] ?? 1))];
+    return ['search'=>trim((string) ($_GET['search'] ?? '')), 'status'=>in_array($_GET['status'] ?? '', ['active','inactive'], true) ? $_GET['status'] : '', 'type'=>in_array($_GET['type'] ?? '', ['individual','company','walk_in'], true) ? $_GET['type'] : '', 'from'=>preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : '', 'to'=>preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '') ? $_GET['to'] : '', 'per_page'=>in_array($requestedPerPage, [5,10,25,50], true) ? $requestedPerPage : 5, 'page'=>max(1, (int) ($_GET['p'] ?? 1))];
 }
 
 function customer_where(array $filters, array &$params): string
