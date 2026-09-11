@@ -9,6 +9,9 @@ function ensure_cashier_register_table(): void
 
     if (!function_exists('ensure_cashier_advance_table')) require_once __DIR__ . '/cashier-advances.php';
     ensure_cashier_advance_table();
+    require_once __DIR__ . '/suppliers.php';
+    require_once __DIR__ . '/stock.php';
+    ensure_stock_tables();
     database()->exec("CREATE TABLE IF NOT EXISTS cashier_registers (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         cashier_id BIGINT UNSIGNED NOT NULL,
@@ -101,6 +104,19 @@ function cashier_register_transactions(string $date, int $cashierId): array
     $statement->execute(['date' => $date, 'cashier' => $cashierId]);
     foreach ($statement->fetchAll() as $row) {
         $transactions[] = ['type' => 'Expense', 'direction' => 'out', 'amount' => (float) $row['amount'], 'description' => $row['description'], 'reference' => $row['reference_no'], 'happened_at' => $row['happened_at']];
+    }
+
+    $statement = $pdo->prepare("SELECT p.purchase_no AS reference_no, sp.paid_at AS happened_at,
+        sp.amount, CONCAT('Stock purchase - ', p.purchase_no) AS description
+        FROM stock_purchase_payments sp
+        JOIN stock_purchases p ON p.id = sp.purchase_id
+        WHERE sp.paid_at >= :date AND sp.paid_at < DATE_ADD(:date, INTERVAL 1 DAY)
+          AND sp.payment_method = 'cash' AND sp.created_by = :cashier
+          AND sp.amount > 0 AND p.status <> 'cancelled'
+        ORDER BY sp.paid_at, sp.id");
+    $statement->execute(['date' => $date, 'cashier' => $cashierId]);
+    foreach ($statement->fetchAll() as $row) {
+        $transactions[] = ['type' => 'Stock purchase', 'direction' => 'out', 'amount' => (float) $row['amount'], 'description' => $row['description'], 'reference' => $row['reference_no'], 'happened_at' => $row['happened_at']];
     }
 
     $statement = $pdo->prepare("SELECT CONCAT('ADV-', a.id) AS reference_no, a.created_at AS happened_at,
@@ -217,11 +233,48 @@ function handle_cashier_register_request(string $section): void
     require __DIR__ . '/../views/cashier-register.php';
 }
 
+function cashier_handover_edit(int $id, array $input): void
+{
+    if ((current_user()['role'] ?? '') !== 'administrator') {
+        throw new InvalidArgumentException('Only administrators can edit cash handovers.');
+    }
+    $amount = trim((string) ($input['accepted_amount'] ?? ''));
+    $note = trim((string) ($input['acceptance_note'] ?? ''));
+    if (!preg_match('/^\d{1,10}(\.\d{1,2})?$/', $amount)) {
+        throw new InvalidArgumentException('Enter a valid received amount with up to two decimal places.');
+    }
+    if (mb_strlen($note) > 255) {
+        throw new InvalidArgumentException('The note cannot exceed 255 characters.');
+    }
+    $statement = database()->prepare("UPDATE cashier_registers SET
+        accepted_amount = :amount, actual_closing_amount = :actual,
+        difference_amount = :received - expected_closing_amount,
+        acceptance_note = :note, accepted_by = :user, accepted_at = NOW()
+        WHERE id = :id AND handover_status = 'accepted' AND status = 'closed'");
+    $statement->execute(['amount' => $amount, 'actual' => $amount, 'received' => $amount,
+        'note' => $note === '' ? null : $note, 'user' => (int) current_user()['id'], 'id' => $id]);
+    if ($statement->rowCount() === 0) {
+        $check = database()->prepare("SELECT id FROM cashier_registers WHERE id = :id AND handover_status = 'accepted' AND status = 'closed'");
+        $check->execute(['id' => $id]);
+        if (!$check->fetchColumn()) throw new InvalidArgumentException('Only accepted, closed handovers can be edited.');
+    }
+}
+
 function handle_cashier_handover_request(string $section): void
 {
     ensure_cashier_register_table();
     if ((current_user()['role'] ?? '') !== 'administrator') { http_response_code(403); require __DIR__ . '/../views/403.php'; return; }
     $errors = [];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['handover_action'] ?? '') === 'edit') {
+        verify_csrf();
+        try {
+            cashier_handover_edit((int) ($_POST['register_id'] ?? 0), $_POST);
+            flash('success', 'Cash handover updated successfully.');
+            redirect('index.php?page=admin&section=cashier-handovers');
+        } catch (InvalidArgumentException $error) {
+            $errors[] = $error->getMessage();
+        }
+    }
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['handover_action'] ?? '', ['accept', 'reject'], true)) {
         verify_csrf();
         $id = max(0, (int) ($_POST['register_id'] ?? 0));
