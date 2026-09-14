@@ -362,7 +362,14 @@ function handle_job_card_request(string $section): void
             redirect('index.php?page=admin&section=jobcards-view&id='.$id);
         }
         $balance = max(0, (float)$job['balance_amount']);
-        if ($balance <= 0.009) { flash('error', 'This job card is already fully paid.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
+        if ($balance <= 0.009) {
+            $latestReceipt = database()->prepare('SELECT id FROM job_card_payments WHERE job_card_id=:job ORDER BY id DESC LIMIT 1');
+            $latestReceipt->execute(['job' => $id]);
+            $latestReceiptId = $latestReceipt->fetchColumn();
+            if ($latestReceiptId) redirect('index.php?page=admin&section=jobcards-receipt&id='.(int)$latestReceiptId);
+            flash('error', 'This job card is already fully paid.');
+            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
+        }
         if ($amountReceived <= 0 || ($method !== 'cash' && $amountReceived > $balance + 0.009)) { flash('error', $method === 'cash' ? 'Enter the cash received amount.' : 'Card or bank payment cannot exceed the outstanding balance.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
         $amountApplied = min($amountReceived, $balance); $changeAmount = max(0, $amountReceived - $amountApplied);
         ensure_stock_tables();

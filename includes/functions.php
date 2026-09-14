@@ -7,6 +7,12 @@ function e(?string $value): string
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+function payment_method_label(?string $method): string
+{
+    return ['cash' => 'Cash', 'card' => 'Card', 'bank' => 'Online Transfer',
+        'bank_transfer' => 'Online Transfer', 'cheque' => 'Cheque', 'other' => 'Other'][$method ?? ''] ?? '-';
+}
+
 function redirect(string $path): never
 {
     header('Location: ' . $path);
@@ -81,6 +87,18 @@ function receipt_logo_path(array $settings): string
     return preg_match('#^assets/uploads/[A-Za-z0-9._/-]+$#', $path) && is_file(__DIR__ . '/../' . $path) ? $path : '';
 }
 
+function dashboard_payment_totals(string $start, string $end): array
+{
+    $totals = ['cash' => 0.0, 'card' => 0.0, 'bank' => 0.0, 'cheque' => 0.0, 'other' => 0.0];
+    $statement = database()->prepare("SELECT p.payment_method, SUM(p.amount_applied) AS amount
+        FROM invoice_payments p JOIN invoices i ON i.id=p.invoice_id
+        WHERE p.payment_date >= :start AND p.payment_date < DATE_ADD(:end, INTERVAL 1 DAY)
+        AND i.payment_status <> 'cancelled' GROUP BY p.payment_method");
+    $statement->execute(['start' => $start, 'end' => $end]);
+    foreach ($statement->fetchAll() as $payment) $totals[$payment['payment_method']] = (float)$payment['amount'];
+    return $totals;
+}
+
 function admin_dashboard_data(string $period = 'today'): array
 {
     $period = in_array($period, ['today', 'week', 'month'], true) ? $period : 'today';
@@ -101,7 +119,7 @@ function admin_dashboard_data(string $period = 'today'): array
         return $statement->fetchAll();
     };
     $empty = [
-        'sales' => 0.0, 'payments' => 0.0, 'pending' => 0.0, 'ongoing' => 0, 'completed' => 0,
+        'sales' => 0.0, 'payments' => 0.0, 'payment_methods' => ['cash' => 0.0, 'card' => 0.0, 'bank' => 0.0], 'pending' => 0.0, 'ongoing' => 0, 'completed' => 0,
         'low_stock' => 0, 'sales_chart' => [], 'income' => ['parts' => 0.0, 'services' => 0.0, 'charges' => 0.0, 'other' => 0.0],
         'job_status' => ['pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0],
         'recent_jobs' => [], 'recent_invoices' => [], 'low_items' => [], 'appointments' => [], 'expenses' => [],
@@ -118,7 +136,8 @@ function admin_dashboard_data(string $period = 'today'): array
         $dateParams = ['start' => $rangeStart->format('Y-m-d'), 'end' => $rangeEnd->format('Y-m-d'), 'today' => $today->format('Y-m-d')];
         $pdo->exec("UPDATE invoices i JOIN job_cards j ON j.id=i.job_card_id SET i.invoice_date=DATE(COALESCE(j.completed_at,j.created_at)) WHERE i.job_card_id IS NOT NULL AND j.status='completed'");
         $empty['sales'] = $value("SELECT COALESCE(SUM(total_amount),0) FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status <> 'cancelled'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
-        $empty['payments'] = $value("SELECT COALESCE(SUM(p.amount_applied),0) FROM invoice_payments p JOIN invoices i ON i.id=p.invoice_id WHERE DATE(p.payment_date) BETWEEN :start AND :end AND i.payment_status <> 'cancelled'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
+        $empty['payment_methods'] = dashboard_payment_totals($dateParams['start'], $dateParams['end']);
+        $empty['payments'] = array_sum($empty['payment_methods']);
         $empty['pending'] = $value("SELECT COALESCE(SUM(GREATEST(balance_amount,0)),0) FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status IN ('due','partial')", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['cashier_settled'] = $value("SELECT COALESCE(SUM(accepted_amount),0) FROM cashier_registers WHERE register_date BETWEEN :start AND :end AND handover_status='accepted'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['cashier_remaining'] = $value("SELECT COALESCE(SUM(GREATEST(expected_closing_amount - COALESCE(accepted_amount,0),0)),0) FROM cashier_registers WHERE register_date BETWEEN :start AND :end AND handover_status IN ('pending','accepted','rejected')", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);

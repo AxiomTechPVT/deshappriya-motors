@@ -329,7 +329,7 @@ if ($isSalesReport) {
                 Payment Method
                 <select class="form-select" name="payment_method">
                     <option value="">All</option>
-                    <?php foreach (['cash' => 'Cash', 'card' => 'Card', 'bank' => 'Bank Transfer', 'cheque' => 'Cheque', 'other' => 'Other'] as $value => $label): ?>
+                    <?php foreach (['cash' => 'Cash', 'card' => 'Card', 'bank' => 'Online Transfer', 'cheque' => 'Cheque', 'other' => 'Other'] as $value => $label): ?>
                         <option value="<?= e($value) ?>" <?= $filters['payment_method'] === $value ? 'selected' : '' ?>><?= e($label) ?></option>
                     <?php endforeach; ?>
                 </select>

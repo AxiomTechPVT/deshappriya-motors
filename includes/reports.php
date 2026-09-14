@@ -1062,7 +1062,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         }
         unset($row);
     } elseif ($section === 'reports-payments') {
-        $baseWhere = ['1=1'];
+        $baseWhere = ["i.payment_status <> 'cancelled'"];
         report_apply_date_filter('DATE(p.payment_date)', $baseWhere, $params, $bounds);
         if ($filters['payment_method'] !== '') {
             $baseWhere[] = 'p.payment_method = :payment_method';
@@ -1097,7 +1097,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             report_summary_card('Total Collected', $summary['total_collected'] ?? 0, 'blue'),
             report_summary_card('Cash Collection', $summary['cash_collection'] ?? 0, 'green'),
             report_summary_card('Card Collection', $summary['card_collection'] ?? 0, 'orange'),
-            report_summary_card('Bank Transfer Collection', $summary['bank_collection'] ?? 0, 'purple'),
+            report_summary_card('Online Transfer Collection', $summary['bank_collection'] ?? 0, 'purple'),
             report_summary_card('Cheque Collection', $summary['cheque_collection'] ?? 0, 'navy'),
             report_summary_card('Outstanding Amount', $summary['outstanding_amount'] ?? 0, 'red'),
         ];
@@ -1115,7 +1115,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         $rows = report_page_rows($sql . ' ORDER BY p.payment_date DESC, p.id DESC', $params, $page, $limit);
         foreach ($rows as &$row) {
             $row['payment_date'] = date('Y-m-d H:i', strtotime((string) $row['payment_date']));
-            $row['payment_method'] = ucfirst((string) $row['payment_method']);
+            $row['payment_method'] = payment_method_label($row['payment_method']);
         }
         unset($row);
     } elseif ($section === 'reports-profit-loss' || $section === 'reports-today-profit') {

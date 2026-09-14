@@ -59,6 +59,9 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
             [$periodLabel . ' Expenses', $currency($dashboard['total_expenses']), 'General operating expenses', 'is-red', 'E', 'index.php?page=admin&section=expenses'],
             [$periodLabel . ' Cash Settled', $currency($dashboard['cashier_settled']), 'Cash accepted from cashier handovers', 'is-green', 'C', 'index.php?page=admin&section=cashier-handovers'],
             [$periodLabel . ' Cash Remaining', $currency($dashboard['cashier_remaining']), 'Expected cash not yet settled', 'is-orange', 'R', 'index.php?page=admin&section=cashier-handovers'],
+            [$periodLabel . ' Cash Collection', $currency($dashboard['payment_methods']['cash']), 'Invoice payments received in cash', 'is-green', 'C', 'index.php?page=admin&section=reports-payments&payment_method=cash&date_mode=' . $dashboard['period']],
+            [$periodLabel . ' Card Collection', $currency($dashboard['payment_methods']['card']), 'Invoice payments received by card', 'is-blue', 'C', 'index.php?page=admin&section=reports-payments&payment_method=card&date_mode=' . $dashboard['period']],
+            [$periodLabel . ' Online Transfer Collection', $currency($dashboard['payment_methods']['bank']), 'Invoice payments received by online transfer', 'is-purple', 'T', 'index.php?page=admin&section=reports-payments&payment_method=bank&date_mode=' . $dashboard['period']],
         ] as $kpi): ?><a class="dashboard-kpi dashboard-kpi-link <?= $kpi[3] ?>" href="<?= e($kpi[5]) ?>"><span class="dashboard-kpi-icon"><?= e($kpi[4]) ?></span><div><small><?= e($kpi[0]) ?></small><strong><?= e($kpi[1]) ?></strong><span><?= e($kpi[2]) ?></span></div></a><?php endforeach; ?>
     </div>
 
