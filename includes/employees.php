@@ -119,12 +119,15 @@ function handle_employee_request(string $section): void
         $attendanceFilters=attendance_filters(); $attendanceRows=attendance_rows($attendanceFilters); $attendanceModalRecord=$attendanceEdit; $attendanceModalType=isset($_GET['attendance_checkout_id'])?'checkout':(isset($_GET['attendance_view_id'])?'view':(isset($_GET['attendance_edit_id'])?'edit':'')); $title='Attendance'; $sectionForHeader=$section; require __DIR__.'/../includes/header.php'; require __DIR__.'/../views/employees.php'; if($attendanceModalType!=='')require __DIR__.'/../views/attendance-modal-'.$attendanceModalType.'.php'; require __DIR__.'/../includes/footer.php'; return;
     }
     if($section==='employees-view' || ($section==='employees-edit' && $_SERVER['REQUEST_METHOD'] !== 'POST')){
-        $input = $employee;
+        $selectedEmployee = $employee;
+        $input = $selectedEmployee;
         $title = 'Employee List';
         $sectionForHeader = 'employees';
         require __DIR__.'/../includes/header.php';
         $section = 'employees';
         require __DIR__.'/../views/employees.php';
+        $employee = $selectedEmployee;
+        $input = $selectedEmployee;
         require __DIR__.'/../views/'.($employeeId && $sectionForHeader === 'employees' && $_GET['section'] === 'employees-edit' ? 'employee-edit-modal.php' : 'employee-view.php');
         require __DIR__.'/../includes/footer.php';
         return;
