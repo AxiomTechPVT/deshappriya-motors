@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+date_default_timezone_set('Asia/Colombo');
+
 require_once __DIR__ . '/income-accounting.php';
 
 function e(?string $value): string
