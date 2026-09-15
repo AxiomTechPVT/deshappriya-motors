@@ -2,4 +2,4 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/deshapri/public_html/
-    - /bin/cp -R . $DEPLOYPATH
+    - /bin/cp -R assets config database includes scripts sql tests views index.php .htaccess README.md $DEPLOYPATH
