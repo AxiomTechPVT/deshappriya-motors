@@ -80,7 +80,7 @@ function receipt_settings(): array
 
 function powered_by_text(): string
 {
-    return 'Powered By Axiom Rec';
+    return 'Powered By Axiom Tech 0721284460';
 }
 
 function receipt_logo_path(array $settings): string

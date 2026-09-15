@@ -1,0 +1,39 @@
+html.receipt-print-path,
+body.receipt-print-mode,
+body.receipt-print-mode .receipt-print-path {
+    display: block !important;
+    position: static !important;
+    width: 80mm !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+}
+.receipt-print-mode .receipt-print-path > :not(.receipt-print-path):not(.receipt-print-target),
+body.receipt-print-mode > :not(.receipt-print-path):not(.receipt-print-target) {
+    display: none !important;
+}
+body.receipt-print-mode .receipt-print-target {
+    box-sizing: border-box !important;
+    position: static !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 2mm 3mm !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+body.receipt-print-mode .receipt-print-target .no-print { display: none !important; }
+body.receipt-print-mode .receipt-print-target .receipt-thanks { margin: 2mm 0 0 !important; }
+body.receipt-print-mode .receipt-print-target .powered-by-print { display: block !important; margin: 1mm 0 0 !important; padding: 0 !important; color: #000 !important; }
+@media print {
+    .receipt-print-target tr { break-inside: avoid; }
+    .receipt-print-target .powered-by-print { break-before: avoid; }
+}
