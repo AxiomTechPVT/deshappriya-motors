@@ -57,7 +57,7 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
             [$periodLabel . ' Spare Parts Profit', $currency($dashboard['parts_profit']), 'Parts sales - parts cost', 'is-blue', 'S', 'index.php?page=admin&section=reports-profit-loss'],
             [$periodLabel . ' Service Charges', $currency($dashboard['service_charge_income']), 'Service charge income', 'is-green', 'C', 'index.php?page=admin&section=reports-profit-loss'],
             [$periodLabel . ' Other Income', $currency($dashboard['income']['other']), 'Income outside invoices', 'is-purple', 'O', 'index.php?page=admin&section=other-income'],
-            [$periodLabel . ' Expenses', $currency($dashboard['total_expenses']), 'General operating expenses', 'is-red', 'E', 'index.php?page=admin&section=expenses'],
+            [$periodLabel . ' Expenses', $currency($dashboard['total_expenses']), 'All recorded expenses', 'is-red', 'E', 'index.php?page=admin&section=expenses'],
             [$periodLabel . ' Cash Settled', $currency($dashboard['cashier_settled']), 'Cash accepted from cashier handovers', 'is-green', 'C', 'index.php?page=admin&section=cashier-handovers'],
             [$periodLabel . ' Cash Remaining', $currency($dashboard['cashier_remaining']), 'Expected cash not yet settled', 'is-orange', 'R', 'index.php?page=admin&section=cashier-handovers'],
             [$periodLabel . ' Cash Collection', $currency($dashboard['payment_methods']['cash']), 'Invoice payments received in cash', 'is-green', 'C', 'index.php?page=admin&section=reports-payments&payment_method=cash&date_mode=' . $dashboard['period']],

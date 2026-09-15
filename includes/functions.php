@@ -179,7 +179,7 @@ function admin_dashboard_data(string $period = 'today'): array
         $empty['appointments'] = $rows("SELECT a.appointment_time, a.status, c.name customer_name, v.vehicle_number FROM appointments a JOIN customers c ON c.id=a.customer_id LEFT JOIN vehicles v ON v.id=a.vehicle_id WHERE a.appointment_date BETWEEN :start AND :end ORDER BY a.appointment_date ASC, a.appointment_time ASC LIMIT 5", $rangeParams);
         $empty['expenses'] = $rows("SELECT expense_no, description, category, total_amount FROM expenses WHERE expense_date BETWEEN :start AND :end AND status <> 'cancelled' ORDER BY expense_date DESC, id DESC LIMIT 5", $rangeParams);
         $empty['other_income'] = other_income_revenue_recent($dateParams['start'], $dateParams['end']);
-        $empty['total_expenses'] = $value("SELECT COALESCE(SUM(total_amount),0) FROM expenses WHERE expense_type='general' AND expense_date BETWEEN :start AND :end AND status <> 'cancelled'", $rangeParams);
+        $empty['total_expenses'] = $value("SELECT COALESCE(SUM(total_amount),0) FROM expenses WHERE expense_date BETWEEN :start AND :end AND status <> 'cancelled'", $rangeParams);
         // Invoice cost_amount stores the unit cost, including for existing invoices.
         $empty['parts_cost'] = $value("SELECT COALESCE(SUM(ii.quantity * ii.cost_amount),0) FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE ii.item_type IN ('stock_part','external_part') AND i.invoice_date BETWEEN :start AND :end AND i.payment_status <> 'cancelled'", $rangeParams);
         $empty['parts_profit'] = $empty['income']['parts'] - $empty['parts_cost'];
