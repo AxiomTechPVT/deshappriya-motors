@@ -267,7 +267,13 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
             $description = trim((string)($row['description'] ?? ''));
             $price = 0.0;
             $cost = null;
-            if ($itemType === 'service') {
+            if ($itemType === 'service' && ($row['service_id'] ?? '') === '__custom__') {
+                $serviceId = 0;
+                if ($description === '' || mb_strlen($description) > 190) { $errors[] = 'Enter a service name of up to 190 characters.'; continue; }
+                $customPrice = $row['unit_price'] ?? '';
+                if (!is_numeric($customPrice) || !is_finite((float)$customPrice) || (float)$customPrice < 0) { $errors[] = 'Enter a valid service price of zero or more.'; continue; }
+                $price = invoice_money($customPrice);
+            } elseif ($itemType === 'service') {
                 $statement = database()->prepare('SELECT id,service_name,price FROM services WHERE id=:id AND status="active"');
                 $statement->execute(['id' => $serviceId]);
                 $service = $statement->fetch();

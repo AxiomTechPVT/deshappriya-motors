@@ -634,13 +634,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const invoiceForm = document.querySelector('[data-invoice-form]');
     const invoiceLookups = document.querySelector('#invoice-lookups');
     if (invoiceForm && invoiceLookups) {
-        const lookups = JSON.parse(invoiceLookups.textContent || '{}');
-        const itemsBody = invoiceForm.querySelector('[data-invoice-items]');
-        itemsBody.querySelectorAll('tr:not(.invoice-empty-row)').forEach((row) => row.remove());
-        const itemsTableHeader = itemsBody.closest('table')?.querySelector('thead tr');
-        if (itemsTableHeader && itemsTableHeader.children.length !== 7) {
-            itemsTableHeader.innerHTML = '<th>#</th><th>Type</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Amount</th><th></th>';
-        }
         const vehicleSelect = invoiceForm.querySelector('[data-invoice-vehicle]');
         if (vehicleSelect && !invoiceForm.querySelector('[data-invoice-vehicle-search]')) {
             const vehicleSearch = document.createElement('input');
@@ -671,62 +664,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 vehicleSelect.value = match ? match.value : '0';
             });
         }
-        let itemIndex = 0;
-        const money = (value) => (Number(value) || 0).toFixed(2);
-        const recalculateInvoice = () => {
-            let subtotal = 0;
-            itemsBody.querySelectorAll('.invoice-item-row').forEach((row) => {
-                const quantityField = row.querySelector('.invoice-line-quantity');
-                const quantity = Number(quantityField?.value) || 0;
-                if (row.dataset.itemType !== 'custom' && quantity <= 0 && quantityField) quantityField.value = '1';
-                const actualQuantity = Number(quantityField?.value) || 0;
-                const amount = actualQuantity * (Number(row.querySelector('.invoice-line-price')?.value) || 0);
-                row.querySelector('.invoice-line-amount').textContent = money(amount);
-                subtotal += amount;
-            });
-            const charge = Number(invoiceForm.querySelector('[data-charge]')?.value) || 0;
-            const discountValue = Number(invoiceForm.querySelector('[data-discount-value]')?.value) || 0;
-            const discountType = invoiceForm.querySelector('[data-discount-type]')?.value || '';
-            const base = subtotal + charge;
-            const discount = Math.min(base, discountType === 'percentage' ? base * discountValue / 100 : discountValue);
-            const total = Math.max(0, base - discount);
-            const received = Number(invoiceForm.querySelector('[data-payment-received]')?.value) || 0;
-            const paid = Math.min(received, total);
-            const due = Math.max(0, total - paid);
-            invoiceForm.querySelector('[data-preview-subtotal]')?.replaceChildren(document.createTextNode('Rs. ' + money(subtotal)));
-            invoiceForm.querySelector('[data-preview-charge]')?.replaceChildren(document.createTextNode('Rs. ' + money(charge)));
-            invoiceForm.querySelector('[data-preview-discount]')?.replaceChildren(document.createTextNode('Rs. ' + money(discount)));
-            invoiceForm.querySelector('[data-preview-total]')?.replaceChildren(document.createTextNode('Rs. ' + money(total)));
-            invoiceForm.querySelector('[data-preview-paid]')?.replaceChildren(document.createTextNode('Rs. ' + money(paid)));
-            invoiceForm.querySelector('[data-preview-due]')?.replaceChildren(document.createTextNode('Rs. ' + money(due)));
-            const paymentPreview = invoiceForm.querySelector('[data-payment-preview]');
-            if (paymentPreview) paymentPreview.innerHTML = 'Amount applied: Rs. ' + money(paid) + ' <span>' + (received > total ? 'Change: Rs. ' + money(received - total) : 'Balance: Rs. ' + money(due)) + '</span>';
-        };
-        const addRow = (type) => {
-            itemsBody.querySelectorAll('tr').forEach((existingRow) => {
-                const selector = existingRow.querySelector('.invoice-line-selector, select');
-                if (selector && (!selector.value || selector.value === '0')) existingRow.remove();
-            });
-            const index = itemIndex++;
-            const options = type === 'service' ? (lookups.services || []).map((item) => '<option value="' + item.id + '" data-price="' + item.price + '">' + escapeHtml(item.service_name) + '</option>').join('') : type === 'stock_part' ? (lookups.parts || []).map((item) => '<option value="' + item.id + '" data-price="' + item.selling_price + '">' + escapeHtml(item.part_code + ' - ' + item.part_name) + '</option>').join('') : '';
-            const selector = type === 'custom' ? '<input class="form-control invoice-line-description" name="items[' + index + '][description]" placeholder="Description" required>' : '<select class="form-select invoice-line-selector" name="items[' + index + '][' + (type === 'service' ? 'service_id' : 'stock_item_id') + ']" required><option value="">Select ' + (type === 'service' ? 'service' : 'stock part') + '</option>' + options + '</select>';
-            const row = document.createElement('tr');
-            row.className = 'invoice-item-row';
-            row.dataset.itemType = type;
-            row.innerHTML = '<td>' + (index + 1) + '<input type="hidden" name="items[' + index + '][type]" value="' + type + '"></td><td>' + (type === 'custom' ? 'Custom' : type === 'service' ? 'Service' : 'Stock Part') + '</td><td>' + selector + '</td><td><input class="form-control invoice-line-quantity" type="number" name="items[' + index + '][quantity]" value="1" min="0.01" step="0.01" required></td><td><input class="form-control invoice-line-price" type="number" name="items[' + index + '][unit_price]" value="0" min="0" step="0.01" ' + (type !== 'custom' ? 'readonly' : '') + ' required></td><td>Rs. <span class="invoice-line-amount">0.00</span></td><td><button class="btn btn-light btn-sm invoice-remove-line" type="button">&times;</button></td>';
-            itemsBody.querySelector('.invoice-empty-row')?.remove();
-            itemsBody.appendChild(row);
-            row.querySelector('.invoice-line-selector')?.addEventListener('change', (event) => { const price = event.target.selectedOptions[0]?.dataset.price || 0; row.querySelector('.invoice-line-price').value = price; itemsBody.querySelectorAll('tr').forEach((existingRow) => { const selector = existingRow.querySelector('.invoice-line-selector, select'); if (existingRow !== row && selector && (!selector.value || selector.value === '0')) existingRow.remove(); }); recalculateInvoice(); });
-            row.querySelector('.invoice-remove-line').onclick = () => { row.remove(); recalculateInvoice(); };
-            row.querySelectorAll('input').forEach((input) => input.addEventListener('input', recalculateInvoice));
-            recalculateInvoice();
-        };
-        invoiceForm.querySelector('[data-add-service]').onclick = () => addRow('service');
-        invoiceForm.querySelector('[data-add-stock]').onclick = () => addRow('stock_part');
-        invoiceForm.querySelector('[data-add-custom]').onclick = () => addRow('custom');
-        invoiceForm.querySelectorAll('[data-charge], [data-discount-type], [data-discount-value], [data-payment-received]').forEach((field) => field.addEventListener('input', recalculateInvoice));
-        invoiceForm.querySelectorAll('[data-discount-type]').forEach((field) => field.addEventListener('change', recalculateInvoice));
-        recalculateInvoice();
+        // Invoice rows and totals are handled by invoices.js.
+
     }
 
     const invoiceTable = document.querySelector('.invoice-table');

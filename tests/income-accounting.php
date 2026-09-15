@@ -63,3 +63,22 @@ check((int)$pdo->query("SELECT COUNT(*) FROM other_income WHERE category='Invoic
 check(other_income_revenue_total('2026-09-15','2026-09-15') === 85.0, 'New invoice activity must not change genuine other income.');
 check((int)$pdo->query("SELECT COUNT(*) FROM other_income WHERE category IN ('Invoice Profit','External Part Profit')")->fetchColumn() === 2, 'Legacy profit records must be preserved, not deleted.');
 echo "PASS: legacy exclusions, real other income, dates, profit totals, external part save, paid/unpaid quick invoices, and preserved payment history.\n";
+
+fixture_table('services', 'service_name, price, status');
+$pdo->exec("INSERT INTO services (service_name,price,status) VALUES ('Oil change',500,'active')");
+$errors = [];
+$id = invoice_create(['invoice_type'=>'quick','payment_method'=>'cash','items'=>[
+    ['type'=>'service','service_id'=>'__custom__','description'=>'Special repair','quantity'=>2,'unit_price'=>350],
+    ['type'=>'service','service_id'=>1,'quantity'=>1,'unit_price'=>1],
+]], 'save', $errors);
+check($id !== null && !$errors, 'Typed and listed services should save together.');
+$savedItems = $pdo->prepare('SELECT * FROM invoice_items WHERE invoice_id=:id ORDER BY id');
+$savedItems->execute(['id'=>$id]);
+$rows = $savedItems->fetchAll();
+check($rows[0]['item_type'] === 'service' && $rows[0]['service_id'] === null && $rows[0]['description'] === 'Special repair' && (float)$rows[0]['line_total'] === 700.0, 'Typed service must retain its name, service classification and price.');
+check((float)$rows[1]['unit_price'] === 500.0, 'Listed service must retain its authoritative catalog price.');
+foreach ([['',350],['Repair',-1],['Repair','invalid']] as [$name,$price]) {
+    $id = invoice_create(['payment_method'=>'cash','items'=>[['type'=>'service','service_id'=>'__custom__','description'=>$name,'quantity'=>1,'unit_price'=>$price]]], 'save', $errors);
+    check($id === null && count($errors) > 0, 'Invalid typed service must be rejected.');
+}
+echo "PASS: typed services, catalog services, service revenue classification and validation.\n";
