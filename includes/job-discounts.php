@@ -1,27 +1,6 @@
 <?php
 declare(strict_types=1);
 
-function job_payment_allocation(float $partsTotal, float $serviceCharge, float $paid, float $currentPayment = 0): array
-{
-    $partsDue = max(0.0, min($partsTotal, $partsTotal + $serviceCharge));
-    $serviceDue = max(0.0, $partsTotal + $serviceCharge - $partsDue);
-    $paidBefore = max(0.0, $paid - $currentPayment);
-    $partsPaid = min($partsDue, $paid);
-    $servicePaid = min($serviceDue, max(0.0, $paid - $partsDue));
-    $currentParts = min(max(0.0, $currentPayment), max(0.0, $partsDue - min($partsDue, $paidBefore)));
-    $currentService = max(0.0, $currentPayment - $currentParts);
-    return [
-        'parts_due' => round($partsDue, 2),
-        'parts_paid' => round($partsPaid, 2),
-        'parts_balance' => round(max(0.0, $partsDue - $partsPaid), 2),
-        'service_due' => round($serviceDue, 2),
-        'service_paid' => round($servicePaid, 2),
-        'service_balance' => round(max(0.0, $serviceDue - $servicePaid), 2),
-        'current_parts' => round($currentParts, 2),
-        'current_service' => round($currentService, 2),
-    ];
-}
-
 function job_payment_calculation(array $job, array $source): array
 {
     $base = round((float)$job['subtotal'] + (float)$job['service_charge'], 2);
@@ -55,7 +34,6 @@ function job_payment_calculation(array $job, array $source): array
     if ($balance > 0.009 && $received <= 0) throw new RuntimeException('Enter the amount received.');
     if ($method !== 'cash' && $received > $balance + 0.009) throw new RuntimeException('Card or bank payment cannot exceed the discounted outstanding balance.');
     $applied = min($received, $balance);
-    $allocation = job_payment_allocation((float)$job['subtotal'], max(0.0, $total - (float)$job['subtotal']), $paid + $applied, $applied);
-    return ['base'=>$base,'discount_type'=>$type ?: null,'discount_value'=>$value,'discount'=>$discount,'total'=>$total,'received'=>$received,'applied'=>$applied,'change'=>max(0.0, round($received-$applied,2)), 'paid'=>round($paid+$applied,2),'balance'=>max(0.0,round($balance-$applied,2)), 'method'=>$method] + $allocation;
+    return ['base'=>$base,'discount_type'=>$type ?: null,'discount_value'=>$value,'discount'=>$discount,'total'=>$total,'received'=>$received,'applied'=>$applied,'change'=>max(0.0, round($received-$applied,2)), 'paid'=>round($paid+$applied,2),'balance'=>max(0.0,round($balance-$applied,2)), 'method'=>$method];
 }
 

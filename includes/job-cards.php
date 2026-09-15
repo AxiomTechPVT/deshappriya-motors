@@ -283,9 +283,7 @@ function handle_job_card_request(string $section): void
         $performance->execute(['id'=>$id]);
         $serviceCharge = database()->prepare('SELECT COALESCE((SELECT amount FROM job_card_service_charges WHERE job_card_id=:id), :fallback)');
         $serviceCharge->execute(['id'=>$id,'fallback'=>(float)($job['service_charge'] ?? 0)]);
-        $serviceChargeValue = (float)$serviceCharge->fetchColumn();
-        $allocation = job_payment_allocation((float)$job['subtotal'], $serviceChargeValue, (float)$job['paid_amount']);
-        echo json_encode(['service_charge'=>$serviceChargeValue,'subtotal'=>(float)$job['subtotal'],'discount'=>(float)($job['discount']??0),'discount_type'=>$job['discount_type']??null,'discount_value'=>$job['discount_value']??null,'status'=>$job['status'],'total'=>(float)$job['total_amount'],'paid'=>(float)$job['paid_amount'],'balance'=>(float)$job['balance_amount'],'allocation'=>$allocation,'started_at'=>$job['started_at'],'performance'=>$performance->fetch() ?: null,'payments'=>$payments->fetchAll()]);
+        echo json_encode(['service_charge'=>(float)$serviceCharge->fetchColumn(),'subtotal'=>(float)$job['subtotal'],'discount'=>(float)($job['discount']??0),'discount_type'=>$job['discount_type']??null,'discount_value'=>$job['discount_value']??null,'status'=>$job['status'],'total'=>(float)$job['total_amount'],'paid'=>(float)$job['paid_amount'],'balance'=>(float)$job['balance_amount'],'started_at'=>$job['started_at'],'performance'=>$performance->fetch() ?: null,'payments'=>$payments->fetchAll()]);
         return;
     }
     if ($section === 'jobcards-service-charge' && $_SERVER['REQUEST_METHOD'] === 'POST') {
