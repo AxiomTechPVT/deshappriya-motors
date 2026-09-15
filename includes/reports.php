@@ -65,7 +65,7 @@ function report_date_mode(string $section): string
 
 function report_date_bounds(string $mode, ?string $from, ?string $to): array
 {
-    $today = date('Y-m-d');
+    $today = (new DateTimeImmutable('today', new DateTimeZone('Asia/Colombo')))->format('Y-m-d');
     if ($mode === 'today') {
         return ['from' => $today, 'to' => $today, 'label' => 'Today'];
     }
@@ -539,7 +539,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         usort($rows, static fn(array $a, array $b): int => strcmp((string)$b['invoice_date'], (string)$a['invoice_date']));
     } elseif ($section === 'reports-job-cards') {
         $baseWhere = ['1=1'];
-        report_apply_date_filter('DATE(j.created_at)', $baseWhere, $params, $bounds);
+        report_apply_date_filter("DATE(CASE WHEN j.status = 'completed' THEN COALESCE(j.completed_at,j.created_at) ELSE j.created_at END)", $baseWhere, $params, $bounds);
         if ($filters['customer_id'] > 0) {
             $baseWhere[] = 'j.customer_id = :customer_id';
             $params['customer_id'] = $filters['customer_id'];

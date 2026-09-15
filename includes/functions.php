@@ -104,7 +104,7 @@ function dashboard_payment_totals(string $start, string $end): array
 function admin_dashboard_data(string $period = 'today'): array
 {
     $period = in_array($period, ['today', 'week', 'month'], true) ? $period : 'today';
-    $today = new DateTimeImmutable('today');
+    $today = new DateTimeImmutable('today', new DateTimeZone('Asia/Colombo'));
     $rangeStart = $period === 'today' ? $today : ($period === 'week' ? $today->modify('monday this week') : $today->modify('first day of this month'));
     $rangeEnd = $today;
     $monthStart = $today->modify('first day of this month');
