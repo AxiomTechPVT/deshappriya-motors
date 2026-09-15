@@ -2,6 +2,8 @@
 $isEdit = $section === 'stock-edit';
 $stockOptions = $stockOptions ?? [];
 $categories = stock_categories();
+$submissionToken = (string)($_POST['stock_submission_token'] ?? '');
+if (!preg_match('/^[a-f0-9]{64}$/D', $submissionToken)) $submissionToken = bin2hex(random_bytes(32));
 ?>
 <div class="customer-modal-backdrop stock-form-backdrop" role="presentation">
     <section class="estimate-side-panel stock-side-panel" role="dialog" aria-modal="true" aria-labelledby="stock-form-title">
@@ -18,8 +20,8 @@ $categories = stock_categories();
                     <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
                 </div>
             <?php endif; ?>
-            <form method="post" action="index.php?page=admin&amp;section=<?= e($section) ?>&amp;id=<?= (int)$id ?>">
-                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <form data-stock-save-form method="post" action="index.php?page=admin&amp;section=<?= e($section) ?>&amp;id=<?= (int)$id ?>">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="stock_submission_token" value="<?= e($submissionToken) ?>">
                 <input type="hidden" name="existing_stock_id" id="existing-stock-id" value="<?= (int)($input['existing_stock_id'] ?? 0) ?>">
                 <div class="estimate-form-section">
                     <h3>Item Information</h3>
@@ -127,4 +129,25 @@ $categories = stock_categories();
     fields.name.addEventListener('input', () => { if (!items.some(row => String(row.part_name).toLowerCase() === fields.name.value.trim().toLowerCase())) fields.id.value = '0'; });
 })();
 </script>
-<div class="page-heading"><div><div class="breadcrumb-line">Home <span>&rsaquo;</span> Stock / Parts <span>&rsaquo;</span> <b>Add Stock</b></div><h1>Add New Stock Item</h1></div></div><div class="admin-panel form-card"><?php if($errors): ?><div class="alert alert-danger"><?php foreach($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?></div><?php endif; ?><form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><div class="row g-3"><div class="col-md-6"><label class="form-label">Part No.<?= $isEdit ? ' *' : '' ?></label><input class="form-control" name="part_code" value="<?= e($input['part_code']) ?>" placeholder="Auto-generated if left blank" maxlength="60" <?= $isEdit ? 'required' : '' ?>></div><div class="col-md-6"><label class="form-label">Part Name *</label><input class="form-control" name="part_name" value="<?= e($input['part_name']) ?>" required></div><div class="col-md-4"><label class="form-label">Category</label><input class="form-control" name="category" list="stock-categories" value="<?= e($input['category']) ?>" placeholder="Select or type a category" maxlength="100"></div><div class="col-md-4"><label class="form-label">Brand</label><input class="form-control" name="brand" value="<?= e($input['brand']) ?>"></div><div class="col-md-4"><label class="form-label">Unit</label><input class="form-control" name="unit" value="<?= e($input['unit']) ?>"></div><div class="col-md-4"><label class="form-label">Buying Price</label><input class="form-control" type="number" step="0.01" name="buying_price" value="<?= e((string)$input['buying_price']) ?>"></div><div class="col-md-4"><label class="form-label">Selling Price</label><input class="form-control" type="number" step="0.01" name="selling_price" value="<?= e((string)$input['selling_price']) ?>"></div><div class="col-md-4"><label class="form-label">Opening Quantity</label><input class="form-control" type="number" step="0.01" name="stock_qty" value="<?= e((string)$input['stock_qty']) ?>"></div><div class="col-md-4"><label class="form-label">Reorder Level</label><input class="form-control" type="number" step="0.01" name="reorder_level" value="<?= e((string)$input['reorder_level']) ?>"></div><div class="col-md-8"><label class="form-label">Supplier</label><select class="form-select" name="supplier_id"><option value="0">No supplier</option><?php foreach($suppliers as $supplier): ?><option value="<?= (int)$supplier['id'] ?>"><?= e($supplier['name'].' ('.$supplier['supplier_code'].')') ?></option><?php endforeach; ?></select></div><div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="3"><?= e($input['notes']) ?></textarea></div></div><div class="estimate-form-footer px-0"><a class="btn btn-light" href="index.php?page=admin&amp;section=stock">Cancel</a><button class="btn btn-danger">Save Stock Item</button></div></form></div>
+<div class="page-heading"><div><div class="breadcrumb-line">Home <span>&rsaquo;</span> Stock / Parts <span>&rsaquo;</span> <b>Add Stock</b></div><h1>Add New Stock Item</h1></div></div><div class="admin-panel form-card"><?php if($errors): ?><div class="alert alert-danger"><?php foreach($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?></div><?php endif; ?><form data-stock-save-form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="stock_submission_token" value="<?= e($submissionToken) ?>"><div class="row g-3"><div class="col-md-6"><label class="form-label">Part No.<?= $isEdit ? ' *' : '' ?></label><input class="form-control" name="part_code" value="<?= e($input['part_code']) ?>" placeholder="Auto-generated if left blank" maxlength="60" <?= $isEdit ? 'required' : '' ?>></div><div class="col-md-6"><label class="form-label">Part Name *</label><input class="form-control" name="part_name" value="<?= e($input['part_name']) ?>" required></div><div class="col-md-4"><label class="form-label">Category</label><input class="form-control" name="category" list="stock-categories" value="<?= e($input['category']) ?>" placeholder="Select or type a category" maxlength="100"></div><div class="col-md-4"><label class="form-label">Brand</label><input class="form-control" name="brand" value="<?= e($input['brand']) ?>"></div><div class="col-md-4"><label class="form-label">Unit</label><input class="form-control" name="unit" value="<?= e($input['unit']) ?>"></div><div class="col-md-4"><label class="form-label">Buying Price</label><input class="form-control" type="number" step="0.01" name="buying_price" value="<?= e((string)$input['buying_price']) ?>"></div><div class="col-md-4"><label class="form-label">Selling Price</label><input class="form-control" type="number" step="0.01" name="selling_price" value="<?= e((string)$input['selling_price']) ?>"></div><div class="col-md-4"><label class="form-label">Opening Quantity</label><input class="form-control" type="number" step="0.01" name="stock_qty" value="<?= e((string)$input['stock_qty']) ?>"></div><div class="col-md-4"><label class="form-label">Reorder Level</label><input class="form-control" type="number" step="0.01" name="reorder_level" value="<?= e((string)$input['reorder_level']) ?>"></div><div class="col-md-8"><label class="form-label">Supplier</label><select class="form-select" name="supplier_id"><option value="0">No supplier</option><?php foreach($suppliers as $supplier): ?><option value="<?= (int)$supplier['id'] ?>"><?= e($supplier['name'].' ('.$supplier['supplier_code'].')') ?></option><?php endforeach; ?></select></div><div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="3"><?= e($input['notes']) ?></textarea></div></div><div class="estimate-form-footer px-0"><a class="btn btn-light" href="index.php?page=admin&amp;section=stock">Cancel</a><button class="btn btn-danger">Save Stock Item</button></div></form></div>
+
+<script>
+(() => {
+    const forms = document.querySelectorAll('[data-stock-save-form]');
+    let submitting = false;
+    const reset = () => { submitting = false; forms.forEach(form => {
+        form.querySelectorAll('[data-stock-submit-label]').forEach(button => {
+            button.disabled = false; button.textContent = button.dataset.stockSubmitLabel;
+        });
+    }); };
+    forms.forEach(form => form.addEventListener('submit', event => {
+        if (submitting) { event.preventDefault(); return; }
+        submitting = true;
+        forms.forEach(candidate => candidate.querySelectorAll('button[type="submit"], button:not([type])').forEach(button => {
+            button.dataset.stockSubmitLabel = button.textContent;
+            button.disabled = true; button.textContent = 'Saving...';
+        }));
+    }));
+    window.addEventListener('pageshow', reset);
+})();
+</script>

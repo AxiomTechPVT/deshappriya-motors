@@ -340,6 +340,7 @@ CREATE TABLE IF NOT EXISTS appointments (
 
 CREATE TABLE IF NOT EXISTS stock_items (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    creation_token CHAR(64) NULL,
     part_code VARCHAR(60) NOT NULL,
     part_name VARCHAR(190) NOT NULL,
     category VARCHAR(100) NULL,
@@ -354,7 +355,7 @@ CREATE TABLE IF NOT EXISTS stock_items (
     notes TEXT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id), UNIQUE KEY stock_items_code_unique (part_code), KEY stock_items_category_index (category), KEY stock_items_brand_index (brand), KEY stock_items_qty_index (stock_qty), CONSTRAINT stock_items_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE SET NULL
+    PRIMARY KEY (id), UNIQUE KEY stock_items_creation_token_unique (creation_token), UNIQUE KEY stock_items_code_unique (part_code), KEY stock_items_category_index (category), KEY stock_items_brand_index (brand), KEY stock_items_qty_index (stock_qty), CONSTRAINT stock_items_supplier_fk FOREIGN KEY (supplier_id) REFERENCES suppliers (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS stock_purchases (
