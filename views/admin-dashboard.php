@@ -53,7 +53,7 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
             ['Completed Jobs', number_format($dashboard['completed']), 'Completed in selected period', 'is-teal', 'V', 'index.php?page=admin&section=jobcards-completed'],
             [$periodLabel . ' Discounts Given', $currency($dashboard['discount_total']), $dashboard['discount_count'] . ' job cards · already reflected in sales', 'is-orange', '%', 'index.php?page=admin&section=reports-job-cards&discounted=1&date_mode=' . $dashboard['period']],
             ['Low Stock Items', number_format($dashboard['low_stock']), 'Current stock alert', 'is-red', 'Q', 'index.php?page=admin&section=stock-low'],
-            [$periodLabel . ' Gross Profit', $currency($dashboard['gross_profit']), 'Sales revenue - cost of parts', 'is-gold', 'P', 'index.php?page=admin&section=reports-profit-loss'],
+            [$periodLabel . ' Gross Profit', $currency($dashboard['gross_profit']), 'All income - all expenses', 'is-gold', 'P', 'index.php?page=admin&section=reports-profit-loss'],
             [$periodLabel . ' Spare Parts Profit', $currency($dashboard['parts_profit']), 'Parts sales - parts cost', 'is-blue', 'S', 'index.php?page=admin&section=reports-profit-loss'],
             [$periodLabel . ' Service Charges', $currency($dashboard['service_charge_income']), 'Service charge income', 'is-green', 'C', 'index.php?page=admin&section=reports-profit-loss'],
             [$periodLabel . ' Other Income', $currency($dashboard['income']['other']), 'Income outside invoices', 'is-purple', 'O', 'index.php?page=admin&section=other-income'],
@@ -99,7 +99,7 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
         <article class="dashboard-card dashboard-table-card"><div class="dashboard-card-heading"><h2>Today's Other Income</h2><a href="index.php?page=admin&amp;section=other-income">View All</a></div><div class="dashboard-table-wrap"><table class="dashboard-table"><thead><tr><th>#</th><th>Description</th><th>Amount (Rs.)</th></tr></thead><tbody><?php if (!$dashboard['other_income']): ?><tr><td colspan="3" class="dashboard-empty">No records found</td></tr><?php else: foreach ($dashboard['other_income'] as $index => $row): ?><tr><td><?= $index + 1 ?></td><td><?= e($row['title']) ?></td><td><?= e(number_format((float) $row['amount'], 2)) ?></td></tr><?php endforeach; endif; ?></tbody></table></div></article>
     </div>
 
-    <article class="dashboard-profit"><div><span class="eyebrow">Profit snapshot</span><h2><?= e($periodLabel) ?> Gross Profit</h2><p>Sales revenue - cost of parts</p></div><strong class="<?= $dashboard['gross_profit'] < 0 ? 'is-negative' : '' ?>"><?= e($currency($dashboard['gross_profit'])) ?></strong></article>
+    <article class="dashboard-profit"><div><span class="eyebrow">Profit snapshot</span><h2><?= e($periodLabel) ?> Gross Profit</h2><p>All income - all expenses</p></div><strong class="<?= $dashboard['gross_profit'] < 0 ? 'is-negative' : '' ?>"><?= e($currency($dashboard['gross_profit'])) ?></strong></article>
 </section>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

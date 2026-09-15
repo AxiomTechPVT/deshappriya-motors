@@ -1192,13 +1192,13 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         $operatingExpenses = report_sql_value(
             'SELECT COALESCE(SUM(total_amount),0)
              FROM expenses
-             WHERE expense_type = "general" AND status <> "cancelled" AND expense_date BETWEEN :from_date AND :to_date',
+             WHERE status <> "cancelled" AND expense_date BETWEEN :from_date AND :to_date',
             ['from_date' => $dateFrom, 'to_date' => $dateTo]
         );
         $totalIncome = $sales + $otherIncome;
         $totalExpenses = $operatingExpenses;
-        $grossProfit = $sales - $fifoCost;
-        $netProfit = $grossProfit + $otherIncome - $operatingExpenses;
+        $grossProfit = $totalIncome - $fifoCost - $totalExpenses;
+        $netProfit = $grossProfit;
         $cards = [
             report_summary_card('Sales Revenue', $sales, 'blue'),
             report_summary_card('Cost of Parts', $fifoCost, 'red'),

@@ -183,8 +183,8 @@ function admin_dashboard_data(string $period = 'today'): array
         // Invoice cost_amount stores the unit cost, including for existing invoices.
         $empty['parts_cost'] = $value("SELECT COALESCE(SUM(ii.quantity * ii.cost_amount),0) FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE ii.item_type IN ('stock_part','external_part') AND i.invoice_date BETWEEN :start AND :end AND i.payment_status <> 'cancelled'", $rangeParams);
         $empty['parts_profit'] = $empty['income']['parts'] - $empty['parts_cost'];
-        $empty['gross_profit'] = $empty['sales'] - $empty['parts_cost'];
-        $empty['net_profit'] = $empty['gross_profit'] + $empty['income']['other'] - $empty['total_expenses'];
+        $empty['gross_profit'] = ($empty['sales'] + $empty['income']['other']) - ($empty['parts_cost'] + $empty['total_expenses']);
+        $empty['net_profit'] = $empty['gross_profit'];
     } catch (Throwable $exception) {
         // Keep the administrator dashboard usable while an optional module table is being initialized.
     }
