@@ -73,11 +73,12 @@ if (!preg_match('/^[a-f0-9]{64}$/D', $submissionToken)) $submissionToken = bin2h
                     <div class="row g-3">
                         <div class="col-6"><label class="form-label">Buying Price (Rs.)</label><input class="form-control" type="number" min="0" step="0.01" name="buying_price" id="stock-buying-price" value="<?= e($input['buying_price']) ?>"></div>
                         <div class="col-6"><label class="form-label">Selling Price (Rs.)</label><input class="form-control" type="number" min="0" step="0.01" name="selling_price" id="stock-selling-price" value="<?= e($input['selling_price']) ?>"></div>
-                        <div class="col-6"><label class="form-label">Opening Stock Qty</label><input class="form-control" type="number" min="0" step="0.01" name="stock_qty" id="stock-qty" value="<?= e($input['stock_qty']) ?>"></div>
+                        <div class="col-6"><label class="form-label" for="stock-qty">Opening Stock Qty</label><input class="form-control" type="number" min="0" step="0.01" name="stock_qty" id="stock-qty" value="<?= e($input['stock_qty']) ?>"></div>
                         <div class="col-6"><label class="form-label">Low Stock Level</label><input class="form-control" type="number" min="0" step="0.01" name="reorder_level" id="stock-reorder-level" value="<?= e($input['reorder_level']) ?>"></div>
                         <div class="col-12"><label class="form-label">Status</label><select class="form-select" name="status" id="stock-status"><option value="active" <?= $input['status'] === 'active' ? 'selected' : '' ?>>Active</option><option value="inactive" <?= $input['status'] === 'inactive' ? 'selected' : '' ?>>Inactive</option></select></div>
                     </div>
                 </div>
+                <?php if (!$isEdit): require __DIR__.'/stock-new-purchase.php'; endif; ?>
                 <div class="estimate-form-section"><label class="form-label">Notes</label><textarea class="form-control" name="notes" id="stock-notes" rows="3" placeholder="Optional notes"><?= e($input['notes']) ?></textarea></div>
                 <div class="estimate-form-footer"><a class="btn btn-light" href="index.php?page=admin&amp;section=stock">Cancel</a><button class="btn btn-danger" type="submit"><?= $isEdit ? 'Update Item' : 'Save Item' ?></button></div>
             </form>
