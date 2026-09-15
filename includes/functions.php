@@ -132,7 +132,14 @@ function admin_dashboard_data(string $period = 'today'): array
         if (!function_exists('ensure_stock_tables')) require_once __DIR__ . '/stock.php';
         if (!function_exists('ensure_job_card_tables')) require_once __DIR__ . '/job-cards.php';
         if (!function_exists('invoice_ensure_tables')) require_once __DIR__ . '/invoices.php';
+        if (!function_exists('ensure_other_income_table')) require_once __DIR__ . '/other-income.php';
+        if (!function_exists('ensure_expense_tables')) {
+            require_once __DIR__ . '/suppliers.php';
+            require_once __DIR__ . '/expenses.php';
+        }
         invoice_ensure_tables();
+        ensure_other_income_table();
+        ensure_expense_tables();
         if (!function_exists('ensure_cashier_register_table')) require_once __DIR__ . '/cashier-register.php';
         ensure_cashier_register_table();
         $dateParams = ['start' => $rangeStart->format('Y-m-d'), 'end' => $rangeEnd->format('Y-m-d'), 'today' => $today->format('Y-m-d')];
