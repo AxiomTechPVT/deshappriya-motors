@@ -165,11 +165,7 @@ function add_external_part_expense(array $job, string $name, float $quantity, fl
     $expenseId = (int)$pdo->lastInsertId();
     $part = $pdo->prepare('INSERT INTO expense_external_parts (expense_id,job_card_id,vehicle_id,part_name,quantity,unit_cost,selling_price,total_cost) VALUES (:expense,:job,:vehicle,:name,:quantity,:buying,:selling,:total)');
     $part->execute(['expense'=>$expenseId,'job'=>$job['id'],'vehicle'=>$job['vehicle_id'] ?: null,'name'=>$name,'quantity'=>$quantity,'buying'=>$buyingPrice,'selling'=>$sellingPrice,'total'=>$totalCost]);
-    $profit = $quantity * ($sellingPrice - $buyingPrice);
-    if ($profit > 0) {
-        $income = $pdo->prepare('INSERT INTO other_income (income_date,title,category,amount,payment_method,reference_no,notes,created_by) VALUES (CURDATE(),:title,:category,:amount,"other",:reference,:notes,:user)');
-        $income->execute(['title'=>'External Part Profit - ' . $name,'category'=>'External Part Profit','amount'=>$profit,'reference'=>$expenseNo,'notes'=>'Profit from job card ' . $job['job_card_no'] . ' (selling price less buying price).','user'=>current_user()['id'] ?? null]);
-    }
+    // The completed job invoice accounts for this part's revenue and cost.
 }
 
 function reserve_job_card_stock(PDO $pdo, int $stockItemId, float $quantity, int $itemId, array $job): void

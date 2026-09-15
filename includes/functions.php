@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/income-accounting.php';
+
 function e(?string $value): string
 {
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
@@ -155,7 +157,7 @@ function admin_dashboard_data(string $period = 'today'): array
         foreach ($incomeRows as $row) { if (in_array($row['item_type'], ['stock_part', 'external_part'], true)) $empty['income']['parts'] += (float) $row['amount']; elseif ($row['item_type'] === 'service') $empty['income']['services'] += (float) $row['amount']; }
         $empty['income']['charges'] = $value("SELECT COALESCE(SUM(special_service_charge),0) FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status <> 'cancelled'", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['service_charge_income'] = $empty['income']['charges'];
-        $empty['income']['other'] = $value("SELECT COALESCE(SUM(amount),0) FROM other_income WHERE income_date BETWEEN :start AND :end", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
+        $empty['income']['other'] = other_income_revenue_total($dateParams['start'], $dateParams['end']);
         $statusRows = $rows("SELECT SUM(status='pending' AND DATE(created_at) BETWEEN :start AND :end) pending, SUM(status='ongoing' AND DATE(created_at) BETWEEN :start2 AND :end2) ongoing, SUM(status='completed' AND DATE(COALESCE(completed_at,created_at)) BETWEEN :start3 AND :end3) completed, SUM(status='cancelled' AND DATE(COALESCE(updated_at,created_at)) BETWEEN :start4 AND :end4) cancelled FROM job_cards", ['start' => $dateParams['start'], 'end' => $dateParams['end'], 'start2' => $dateParams['start'], 'end2' => $dateParams['end'], 'start3' => $dateParams['start'], 'end3' => $dateParams['end'], 'start4' => $dateParams['start'], 'end4' => $dateParams['end']]);
         if ($statusRows) foreach (array_keys($empty['job_status']) as $status) $empty['job_status'][$status] = (int) ($statusRows[0][$status] ?? 0);
         $empty['recent_jobs'] = $rows("SELECT jc.id, jc.job_card_no, jc.status, DATE(jc.created_at) created_date, c.name customer_name, v.vehicle_number FROM job_cards jc JOIN customers c ON c.id=jc.customer_id LEFT JOIN vehicles v ON v.id=jc.vehicle_id ORDER BY jc.created_at DESC, jc.id DESC LIMIT 5");
@@ -164,9 +166,10 @@ function admin_dashboard_data(string $period = 'today'): array
         $rangeParams = ['start' => $dateParams['start'], 'end' => $dateParams['end']];
         $empty['appointments'] = $rows("SELECT a.appointment_time, a.status, c.name customer_name, v.vehicle_number FROM appointments a JOIN customers c ON c.id=a.customer_id LEFT JOIN vehicles v ON v.id=a.vehicle_id WHERE a.appointment_date BETWEEN :start AND :end ORDER BY a.appointment_date ASC, a.appointment_time ASC LIMIT 5", $rangeParams);
         $empty['expenses'] = $rows("SELECT expense_no, description, category, total_amount FROM expenses WHERE expense_date BETWEEN :start AND :end AND status <> 'cancelled' ORDER BY expense_date DESC, id DESC LIMIT 5", $rangeParams);
-        $empty['other_income'] = $rows("SELECT title, amount FROM other_income WHERE income_date BETWEEN :start AND :end ORDER BY income_date DESC, id DESC LIMIT 5", $rangeParams);
+        $empty['other_income'] = other_income_revenue_recent($dateParams['start'], $dateParams['end']);
         $empty['total_expenses'] = $value("SELECT COALESCE(SUM(total_amount),0) FROM expenses WHERE expense_type='general' AND expense_date BETWEEN :start AND :end AND status <> 'cancelled'", $rangeParams);
-        $empty['parts_cost'] = $value("SELECT COALESCE(SUM(ii.cost_amount),0) FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE ii.item_type IN ('stock_part','external_part') AND i.invoice_date BETWEEN :start AND :end AND i.payment_status <> 'cancelled'", $rangeParams);
+        // Invoice cost_amount stores the unit cost, including for existing invoices.
+        $empty['parts_cost'] = $value("SELECT COALESCE(SUM(ii.quantity * ii.cost_amount),0) FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE ii.item_type IN ('stock_part','external_part') AND i.invoice_date BETWEEN :start AND :end AND i.payment_status <> 'cancelled'", $rangeParams);
         $empty['parts_profit'] = $empty['income']['parts'] - $empty['parts_cost'];
         $empty['gross_profit'] = $empty['sales'] - $empty['parts_cost'];
         $empty['net_profit'] = $empty['gross_profit'] + $empty['income']['other'] - $empty['total_expenses'];
