@@ -34,6 +34,12 @@ body.receipt-print-mode .receipt-print-target .no-print { display: none !importa
 body.receipt-print-mode .receipt-print-target .receipt-thanks { margin: 2mm 0 0 !important; }
 body.receipt-print-mode .receipt-print-target .powered-by-print { display: block !important; margin: 1mm 0 0 !important; padding: 0 !important; color: #000 !important; }
 @media print {
+    /* The shared salary print stylesheet hides body descendants. Restore the
+       selected receipt explicitly, including receipts outside a modal. */
+    body.receipt-print-mode .receipt-print-target,
+    body.receipt-print-mode .receipt-print-target * {
+        visibility: visible !important;
+    }
     .receipt-print-target tr { break-inside: avoid; }
     .receipt-print-target .powered-by-print { break-before: avoid; }
 }
