@@ -331,13 +331,7 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
             $insertItem->execute(['invoice'=>$invoiceId, 'type'=>$item['type'], 'service'=>$item['service_id'] ?: null, 'stock'=>$item['stock_item_id'] ?: null, 'external'=>$item['external_part_id'] ?: null, 'description'=>$item['description'], 'quantity'=>$item['quantity'], 'price'=>$item['unit_price'], 'cost'=>$item['cost_amount'], 'total'=>$item['line_total']]);
             if ($item['type'] === 'stock_part') $stockTotals[$item['stock_item_id']] = ($stockTotals[$item['stock_item_id']] ?? 0) + $item['quantity'];
         }
-        if ($type === 'quick') {
-            $profit = $charge;
-            foreach ($items as $item) $profit += max(0, ((float)$item['unit_price'] - (float)($item['cost_amount'] ?? 0)) * (float)$item['quantity']);
-            if ($profit > 0) {
-                $pdo->prepare('INSERT INTO other_income (income_date,title,category,amount,payment_method,reference_no,notes,created_by) VALUES (CURDATE(),:title,:category,:amount,"other",:reference,:notes,:user)')->execute(['title'=>'Invoice Profit - '.$invoiceNo,'category'=>'Invoice Profit','amount'=>round($profit,2),'reference'=>$invoiceNo,'notes'=>'Estimated profit recorded from quick invoice '.$invoiceNo.'.','user'=>current_user()['id']??null]);
-            }
-        }
+        // Profit is derived from invoice revenue less parts cost, not other income.
         if ($type === 'quick') {
             foreach ($stockTotals as $stockId => $quantity) {
                 $stockStatement = $pdo->prepare('SELECT stock_qty FROM stock_items WHERE id=:id FOR UPDATE');

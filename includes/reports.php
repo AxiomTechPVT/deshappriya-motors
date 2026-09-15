@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/income-accounting.php';
+
 function report_definitions(): array
 {
     return [
@@ -1155,12 +1157,10 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             'SELECT COALESCE(SUM(special_service_charge),0) FROM invoices WHERE payment_status <> "cancelled" AND invoice_date BETWEEN :from_date AND :to_date',
             ['from_date' => $dateFrom, 'to_date' => $dateTo]
         );
-        $otherIncome = report_sql_value(
-            'SELECT COALESCE(SUM(amount),0) FROM other_income WHERE income_date BETWEEN :from_date AND :to_date',
-            ['from_date' => $dateFrom, 'to_date' => $dateTo]
-        );
+        $otherIncome = other_income_revenue_total($dateFrom, $dateTo);
+        // Invoice cost_amount stores the unit cost, including for existing invoices.
         $fifoCost = report_sql_value(
-            'SELECT COALESCE(SUM(ii.cost_amount),0)
+            'SELECT COALESCE(SUM(ii.quantity * ii.cost_amount),0)
              FROM invoice_items ii
              JOIN invoices i ON i.id = ii.invoice_id
              WHERE ii.item_type IN ("stock_part","external_part")
@@ -1258,14 +1258,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
                 [
                     'title' => "Today's Other Income",
                     'columns' => ['title' => 'Title', 'income_date' => 'Date', 'payment_method' => 'Method', 'amount' => 'Amount'],
-                    'rows' => report_sql_rows(
-                        'SELECT title, income_date, payment_method, amount
-                         FROM other_income
-                         WHERE income_date = :today
-                         ORDER BY id DESC
-                         LIMIT 5',
-                        ['today' => date('Y-m-d')]
-                    ),
+                    'rows' => other_income_revenue_recent(date('Y-m-d'), date('Y-m-d')),
                 ],
             ];
         }
