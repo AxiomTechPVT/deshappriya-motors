@@ -383,6 +383,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const method = backdrop.querySelector('.payment-method');
                     const applied = backdrop.querySelector('[data-payment-applied]');
                     const change = backdrop.querySelector('[data-payment-change]');
+                    const allocationNote = document.createElement('small');
+                    allocationNote.className = 'payment-allocation-note';
+                    change.closest('.payment-calculation')?.appendChild(allocationNote);
                     const discountType = backdrop.querySelector('[data-job-discount-type]');
                     const discountValue = backdrop.querySelector('[data-job-discount-value]');
                     discountType.value = summary.discount_type || (Number(summary.discount || 0) > 0 ? 'fixed' : '');
@@ -408,6 +411,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         applied.textContent = 'Rs. ' + appliedValue.toFixed(2);
                         change.textContent = difference >= 0 ? 'Change: Rs. ' + difference.toFixed(2) : 'Balance: Rs. ' + Math.abs(difference).toFixed(2);
                         change.className = difference >= 0 ? 'payment-change-positive' : 'payment-change-due';
+                        const partsDue = Math.min(Number(summary.subtotal || 0), total);
+                        const paidBefore = Math.max(0, alreadyPaid);
+                        const partsAlreadyPaid = Math.min(partsDue, paidBefore);
+                        const currentParts = Math.min(appliedValue, Math.max(0, partsDue - partsAlreadyPaid));
+                        const currentService = Math.max(0, appliedValue - currentParts);
+                        allocationNote.textContent = 'This payment: Parts Rs. ' + currentParts.toFixed(2) + ' · Service charge Rs. ' + currentService.toFixed(2);
                     };
                     discountType.addEventListener('change', () => updatePayment(true));
                     discountValue.addEventListener('input', () => updatePayment(true));
