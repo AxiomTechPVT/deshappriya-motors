@@ -122,7 +122,7 @@ function admin_dashboard_data(string $period = 'today'): array
     };
     $empty = [
         'sales' => 0.0, 'payments' => 0.0, 'payment_methods' => ['cash' => 0.0, 'card' => 0.0, 'bank' => 0.0], 'pending' => 0.0, 'ongoing' => 0, 'completed' => 0,
-        'low_stock' => 0, 'sales_chart' => [], 'income' => ['parts' => 0.0, 'services' => 0.0, 'charges' => 0.0, 'other' => 0.0],
+        'low_stock' => 0, 'discount_total' => 0.0, 'discount_count' => 0, 'sales_chart' => [], 'income' => ['parts' => 0.0, 'services' => 0.0, 'charges' => 0.0, 'other' => 0.0],
         'job_status' => ['pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0],
         'recent_jobs' => [], 'recent_invoices' => [], 'low_items' => [], 'appointments' => [], 'expenses' => [],
         'other_income' => [], 'net_profit' => 0.0, 'gross_profit' => 0.0, 'parts_profit' => 0.0, 'service_charge_income' => 0.0, 'cashier_settled' => 0.0, 'cashier_remaining' => 0.0, 'parts_cost' => 0.0, 'total_expenses' => 0.0,
@@ -145,6 +145,9 @@ function admin_dashboard_data(string $period = 'today'): array
         $empty['cashier_remaining'] = $value("SELECT COALESCE(SUM(GREATEST(expected_closing_amount - COALESCE(accepted_amount,0),0)),0) FROM cashier_registers WHERE register_date BETWEEN :start AND :end AND handover_status IN ('pending','accepted','rejected')", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['ongoing'] = (int) $value("SELECT COUNT(*) FROM job_cards WHERE status='ongoing' AND DATE(created_at) BETWEEN :start AND :end", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
         $empty['completed'] = (int) $value("SELECT COUNT(*) FROM job_cards WHERE status='completed' AND DATE(COALESCE(completed_at,created_at)) BETWEEN :start AND :end", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
+        $discounts = $rows("SELECT COALESCE(SUM(discount),0) discount_total, COUNT(*) discount_count FROM job_cards WHERE status='completed' AND discount>0 AND DATE(COALESCE(completed_at,created_at)) BETWEEN :start AND :end", ['start' => $dateParams['start'], 'end' => $dateParams['end']]);
+        $empty['discount_total'] = (float)($discounts[0]['discount_total'] ?? 0);
+        $empty['discount_count'] = (int)($discounts[0]['discount_count'] ?? 0);
         $empty['low_stock'] = (int) $value("SELECT COUNT(*) FROM stock_items WHERE status='active' AND stock_qty <= reorder_level");
         $chartStart = $rangeStart->format('Y-m-d');
         $chartRows = $rows("SELECT invoice_date, invoice_type, COALESCE(SUM(total_amount),0) amount FROM invoices WHERE invoice_date BETWEEN :start AND :end AND payment_status <> 'cancelled' GROUP BY invoice_date, invoice_type ORDER BY invoice_date", ['start' => $chartStart, 'end' => $rangeEnd->format('Y-m-d')]);

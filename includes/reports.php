@@ -196,6 +196,7 @@ function report_filters_from_request(string $section): array
         'status' => trim((string) ($_GET['status'] ?? '')),
         'invoice_type' => trim((string) ($_GET['invoice_type'] ?? '')),
         'payment_status' => trim((string) ($_GET['payment_status'] ?? '')),
+        'discounted' => ($_GET['discounted'] ?? '') === '1' ? '1' : '',
         'payment_method' => trim((string) ($_GET['payment_method'] ?? '')),
         'expense_category' => trim((string) ($_GET['expense_category'] ?? '')),
         'stock_view' => trim((string) ($_GET['stock_view'] ?? 'current')),
@@ -577,6 +578,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $baseWhere[] = 'j.status = :job_status';
             $params['job_status'] = $filters['job_status'];
         }
+        if ($filters['discounted'] === '1') $baseWhere[] = 'j.discount > 0';
         $summary = report_sql_rows(
             'SELECT
                 COUNT(*) AS total_cards,
@@ -603,6 +605,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             'mechanic_name' => 'Mechanic',
             'bay_name' => 'Bay',
             'status_label' => 'Status',
+            'discount_amount' => 'Discount',
             'completed_date' => 'Completed Date',
             'invoice_total' => 'Invoice Total',
         ];
@@ -612,6 +615,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
                 COALESCE(v.vehicle_number, "-") AS vehicle_number,
                 COALESCE(e.name, "-") AS mechanic_name,
                 COALESCE(i.total_amount, 0) AS invoice_total,
+                COALESCE(j.discount,0) AS discount_amount,
                 j.completed_at AS completed_date
             FROM job_cards j
             JOIN customers c ON c.id = j.customer_id

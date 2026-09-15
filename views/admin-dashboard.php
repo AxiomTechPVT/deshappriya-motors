@@ -51,6 +51,7 @@ foreach ($dashboard['sales_chart'] as $salesDay) {
             [$periodLabel . ' Pending Payments', $currency($dashboard['pending']), 'Invoice balance in selected period', 'is-orange', '!', 'index.php?page=admin&section=invoices'],
             [$periodLabel . ' Ongoing Jobs', number_format($dashboard['ongoing']), 'Jobs in selected period', 'is-purple', 'W', 'index.php?page=admin&section=jobcards-ongoing'],
             ['Completed Jobs', number_format($dashboard['completed']), 'Completed in selected period', 'is-teal', 'V', 'index.php?page=admin&section=jobcards-completed'],
+            [$periodLabel . ' Discounts Given', $currency($dashboard['discount_total']), $dashboard['discount_count'] . ' job cards · already reflected in sales', 'is-orange', '%', 'index.php?page=admin&section=reports-job-cards&discounted=1&date_mode=' . $dashboard['period']],
             ['Low Stock Items', number_format($dashboard['low_stock']), 'Current stock alert', 'is-red', 'Q', 'index.php?page=admin&section=stock-low'],
             [$periodLabel . ' Gross Profit', $currency($dashboard['gross_profit']), 'Sales revenue - cost of parts', 'is-gold', 'P', 'index.php?page=admin&section=reports-profit-loss'],
             [$periodLabel . ' Spare Parts Profit', $currency($dashboard['parts_profit']), 'Parts sales - parts cost', 'is-blue', 'S', 'index.php?page=admin&section=reports-profit-loss'],
