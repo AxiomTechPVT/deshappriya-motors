@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/price-reductions.php';
+
 require_once __DIR__ . '/income-accounting.php';
 
 function report_definitions(): array
@@ -377,6 +379,9 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $params['payment_status'] = $filters['payment_status'];
         }
 
+        ensure_price_snapshot_column('invoice_items');
+        $invoiceReductionSql = price_reduction_sql('ii');
+        $jobReductionSql = price_reduction_sql('ji');
         $salesTotals = report_sql_rows(
             'SELECT
                 COALESCE(SUM(i.total_amount),0) AS total_sales,
@@ -391,7 +396,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         $salesItemTotals = report_sql_rows(
             'SELECT
                 COALESCE(SUM(CASE WHEN ii.item_type IN ("stock_part","external_part") THEN ii.line_total ELSE 0 END),0) AS parts_sales,
-                COALESCE(SUM(CASE WHEN ii.item_type="service" THEN ii.line_total ELSE 0 END),0) AS service_income
+                COALESCE(SUM(CASE WHEN ii.item_type="service" THEN ii.line_total ELSE 0 END),0) AS service_income,
+                COALESCE(SUM(' . $invoiceReductionSql . '),0) AS price_reduction_amount
             FROM invoices i
             JOIN invoice_items ii ON ii.invoice_id = i.id
             WHERE ' . implode(' AND ', $baseWhere),
@@ -417,7 +423,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         )[0] ?? [];
         $receiptRows = report_sql_rows(
             'SELECT DATE(p.paid_at) AS invoice_date, p.receipt_no AS invoice_no, "job_card" AS invoice_type,
-                    0 AS special_service_charge, 0 AS discount_amount, j.total_amount AS total_amount,
+                    0 AS special_service_charge, COALESCE(j.discount,0) AS discount_amount,
+                    COALESCE((SELECT SUM(' . $jobReductionSql . ') FROM job_card_items ji WHERE ji.job_card_id=j.id),0) AS price_reduction_amount, j.total_amount AS total_amount,
                     CASE WHEN j.balance_amount <= 0.009 THEN "paid" ELSE "partial" END AS payment_status,
                     COALESCE(c.name, "Walk-in Customer") AS customer_name,
                     COALESCE(v.vehicle_number, "-") AS vehicle_number,
@@ -431,7 +438,7 @@ function report_build(string $section, array $filters, bool $exportAll = false):
              ORDER BY p.paid_at DESC, p.id DESC',
             $receiptParams
         );
-        $completedJobWhere = ['j.status = "completed"', 'j.completed_at IS NOT NULL', 'NOT EXISTS (SELECT 1 FROM job_card_payments p2 WHERE p2.job_card_id = j.id)'];
+        $completedJobWhere = ['j.status = "completed"', 'j.completed_at IS NOT NULL', 'NOT EXISTS (SELECT 1 FROM job_card_payments p2 WHERE p2.job_card_id = j.id)', 'NOT EXISTS (SELECT 1 FROM invoices i2 WHERE i2.job_card_id = j.id AND i2.payment_status <> "cancelled")'];
         $completedJobParams = [];
         report_apply_date_filter('DATE(j.completed_at)', $completedJobWhere, $completedJobParams, $bounds);
         if ($filters['invoice_type'] !== '' && $filters['invoice_type'] !== 'job_card') $completedJobWhere[] = '1 = 0';
@@ -445,7 +452,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         }
         $completedJobRows = report_sql_rows(
             'SELECT DATE(j.completed_at) AS invoice_date, j.job_card_no AS invoice_no, "job_card" AS invoice_type,
-                    0 AS special_service_charge, 0 AS discount_amount, j.total_amount,
+                    0 AS special_service_charge, COALESCE(j.discount,0) AS discount_amount,
+                    COALESCE((SELECT SUM(' . $jobReductionSql . ') FROM job_card_items ji WHERE ji.job_card_id=j.id),0) AS price_reduction_amount, j.total_amount,
                     CASE WHEN j.balance_amount <= 0.009 THEN "paid" WHEN j.paid_amount > 0 THEN "partial" ELSE "due" END AS payment_status,
                     COALESCE(c.name, "Walk-in Customer") AS customer_name,
                     COALESCE(v.vehicle_number, "-") AS vehicle_number,
@@ -465,6 +473,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
         $receiptRows = array_merge($receiptRows, $completedJobRows);
         $salesItemTotals['parts_sales'] = (float)($salesItemTotals['parts_sales'] ?? 0) + array_sum(array_map(static fn(array $row): float => (float)$row['parts_amount'], $receiptRows));
         $salesItemTotals['service_income'] = (float)($salesItemTotals['service_income'] ?? 0) + array_sum(array_map(static fn(array $row): float => (float)$row['service_amount'], $receiptRows));
+        $salesTotals['total_discount'] = (float)($salesTotals['total_discount'] ?? 0) + array_sum(array_column($receiptRows, 'discount_amount'));
+        $priceReductions = (float)($salesItemTotals['price_reduction_amount'] ?? 0) + array_sum(array_column($receiptRows, 'price_reduction_amount'));
         $cards = [
             report_summary_card('Total Sales', $salesTotals['total_sales'] ?? 0, 'blue'),
             report_summary_card('Job Card Sales', $salesTotals['job_card_sales'] ?? 0, 'green'),
@@ -472,7 +482,9 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             report_summary_card('Spare Parts Sales', $salesItemTotals['parts_sales'] ?? 0, 'purple'),
             report_summary_card('Service Income', $salesItemTotals['service_income'] ?? 0, 'navy'),
             report_summary_card('Special Service Charges', $salesTotals['special_charge'] ?? 0, 'teal'),
-            report_summary_card('Total Discount', $salesTotals['total_discount'] ?? 0, 'red'),
+            report_summary_card('Invoice Discounts', $salesTotals['total_discount'] ?? 0, 'red'),
+            report_summary_card('Part Price Reductions', $priceReductions, 'orange'),
+            report_summary_card('Total Discount', (float)($salesTotals['total_discount'] ?? 0) + $priceReductions, 'red'),
         ];
         $trend = report_sql_rows(
             'SELECT DATE(i.invoice_date) AS label, COALESCE(SUM(i.total_amount),0) AS value
@@ -502,7 +514,9 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             'parts_amount' => 'Parts Amount',
             'service_amount' => 'Service Amount',
             'special_service_charge' => 'Special Charge',
-            'discount_amount' => 'Discount',
+            'discount_amount' => 'Invoice Discount',
+            'price_reduction_amount' => 'Part Price Reduction',
+            'total_discount_amount' => 'Total Discount',
             'total_amount' => 'Total',
             'payment_status_label' => 'Payment Status',
         ];
@@ -511,7 +525,8 @@ function report_build(string $section, array $filters, bool $exportAll = false):
                 COALESCE(c.name, "Walk-in Customer") AS customer_name,
                 COALESCE(v.vehicle_number, "-") AS vehicle_number,
                 SUM(CASE WHEN ii.item_type IN ("stock_part","external_part") THEN ii.line_total ELSE 0 END) AS parts_amount,
-                SUM(CASE WHEN ii.item_type = "service" THEN ii.line_total ELSE 0 END) AS service_amount
+                SUM(CASE WHEN ii.item_type = "service" THEN ii.line_total ELSE 0 END) AS service_amount,
+                COALESCE(SUM(' . $invoiceReductionSql . '),0) AS price_reduction_amount
             FROM invoices i
             LEFT JOIN customers c ON c.id = i.customer_id
             LEFT JOIN vehicles v ON v.id = i.vehicle_id
@@ -526,12 +541,14 @@ function report_build(string $section, array $filters, bool $exportAll = false):
             $limit
         );
         foreach ($rows as &$row) {
+            $row['total_discount_amount'] = (float)($row['discount_amount'] ?? 0) + (float)($row['price_reduction_amount'] ?? 0);
             $row['invoice_type_label'] = $row['invoice_type'] === 'job_card' ? 'Job Card' : 'Quick Invoice';
             $row['payment_status_label'] = ucfirst((string) $row['payment_status']);
         }
         unset($row);
         $rows = array_merge($rows, $receiptRows);
         foreach ($rows as &$row) {
+            $row['total_discount_amount'] = (float)($row['discount_amount'] ?? 0) + (float)($row['price_reduction_amount'] ?? 0);
             $row['invoice_type_label'] = $row['invoice_type'] === 'job_card' ? 'Job Card' : 'Quick Invoice';
             $row['payment_status_label'] = ucfirst((string) $row['payment_status']);
         }

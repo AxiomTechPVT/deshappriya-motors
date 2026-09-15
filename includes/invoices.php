@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/price-reductions.php';
+
 function invoice_ensure_tables(): void
 {
     static $ready = false;
@@ -85,6 +87,7 @@ function invoice_ensure_tables(): void
         CONSTRAINT invoice_payments_user_fk FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     if (!$pdo->query("SHOW COLUMNS FROM invoices LIKE 'vehicle_display_number'")->fetch()) $pdo->exec("ALTER TABLE invoices ADD vehicle_display_number VARCHAR(40) NULL AFTER vehicle_id");
+    ensure_price_snapshot_column('invoice_items');
     invoice_sync_completed_jobs($pdo);
     $ready = true;
 }
@@ -157,7 +160,7 @@ function invoice_job_data(int $jobId): ?array
                 $cost = $stock->fetchColumn();
             }
         }
-        $items[] = ['type'=>$type,'service_id'=>$type==='service'?(int)($item['service_id']??0):0,'stock_item_id'=>$type==='stock_part'?(int)($item['stock_item_id']??0):0,'external_part_id'=>0,'description'=>$item['item_name'],'quantity'=>(float)$item['quantity'],'unit_price'=>(float)$item['unit_price'],'cost_amount'=>$cost === null ? null : (float)$cost];
+        $items[] = ['type'=>$type,'service_id'=>$type==='service'?(int)($item['service_id']??0):0,'stock_item_id'=>$type==='stock_part'?(int)($item['stock_item_id']??0):0,'external_part_id'=>0,'description'=>$item['item_name'],'quantity'=>(float)$item['quantity'],'unit_price'=>(float)$item['unit_price'],'list_unit_price'=>$item['list_unit_price']??null,'cost_amount'=>$cost === null ? null : (float)$cost];
     }
     $external = $pdo->prepare('SELECT id,part_name,quantity,selling_price,unit_cost FROM expense_external_parts WHERE job_card_id=:job ORDER BY id');
     $external->execute(['job' => $jobId]);
@@ -178,15 +181,16 @@ function invoice_sync_completed_jobs(PDO $pdo): void
         $subtotal = 0.0;
         foreach ($job['invoice_items'] as $item) $subtotal += round((float)$item['quantity'] * (float)$item['unit_price'], 2);
         $charge = invoice_money($job['invoice_charge']);
-        $total = round($subtotal + $charge, 2);
+        $jobDiscount = min($subtotal + $charge, max(0, (float)($job['discount'] ?? 0)));
+        $total = round($subtotal + $charge - $jobDiscount, 2);
         $pdo->beginTransaction();
         try {
-            $pdo->prepare('INSERT INTO invoices (invoice_no,invoice_type,job_card_id,customer_id,vehicle_id,invoice_date,subtotal,special_service_charge,total_amount,balance_amount,payment_status,created_by) VALUES (:no,"job_card",:job,:customer,:vehicle,:date,:subtotal,:charge,:total,:total,"due",:user)')->execute(['no'=>'TMP-SYNC-'.bin2hex(random_bytes(4)),'job'=>$job['id'],'customer'=>$job['customer_id'],'vehicle'=>$job['vehicle_id'] ?: null,'date'=>date('Y-m-d', strtotime((string)($job['completed_at'] ?: $job['created_at']))),'subtotal'=>$subtotal,'charge'=>$charge,'total'=>$total,'user'=>$job['created_by'] ?: null]);
+            $pdo->prepare('INSERT INTO invoices (invoice_no,invoice_type,job_card_id,customer_id,vehicle_id,invoice_date,subtotal,special_service_charge,discount_type,discount_value,discount_amount,total_amount,balance_amount,payment_status,created_by) VALUES (:no,"job_card",:job,:customer,:vehicle,:date,:subtotal,:charge,:discount_type,:discount_value,:discount_amount,:total,:total,"due",:user)')->execute(['no'=>'TMP-SYNC-'.bin2hex(random_bytes(4)),'job'=>$job['id'],'customer'=>$job['customer_id'],'vehicle'=>$job['vehicle_id'] ?: null,'date'=>date('Y-m-d', strtotime((string)($job['completed_at'] ?: $job['created_at']))),'subtotal'=>$subtotal,'charge'=>$charge,'discount_type'=>$job['discount_type']??($jobDiscount>0?'fixed':null),'discount_value'=>$job['discount_value']??$jobDiscount,'discount_amount'=>$jobDiscount,'total'=>$total,'user'=>$job['created_by'] ?: null]);
             $invoiceId = (int)$pdo->lastInsertId();
             $invoiceNo = 'INV-' . str_pad((string)$invoiceId, 6, '0', STR_PAD_LEFT);
             $pdo->prepare('UPDATE invoices SET invoice_no=:no WHERE id=:id')->execute(['no'=>$invoiceNo,'id'=>$invoiceId]);
-            $insert = $pdo->prepare('INSERT INTO invoice_items (invoice_id,item_type,service_id,stock_item_id,external_part_id,description,quantity,unit_price,cost_amount,line_total) VALUES (:invoice,:type,:service,:stock,:external,:description,:quantity,:price,:cost,:total)');
-            foreach ($job['invoice_items'] as $item) $insert->execute(['invoice'=>$invoiceId,'type'=>$item['type'],'service'=>$item['service_id'] ?: null,'stock'=>$item['stock_item_id'] ?: null,'external'=>$item['external_part_id'] ?: null,'description'=>$item['description'],'quantity'=>$item['quantity'],'price'=>$item['unit_price'],'cost'=>$item['cost_amount'],'total'=>round((float)$item['quantity'] * (float)$item['unit_price'], 2)]);
+            $insert = $pdo->prepare('INSERT INTO invoice_items (invoice_id,item_type,service_id,stock_item_id,external_part_id,description,quantity,unit_price,list_unit_price,cost_amount,line_total) VALUES (:invoice,:type,:service,:stock,:external,:description,:quantity,:price,:list_price,:cost,:total)');
+            foreach ($job['invoice_items'] as $item) $insert->execute(['invoice'=>$invoiceId,'type'=>$item['type'],'service'=>$item['service_id'] ?: null,'stock'=>$item['stock_item_id'] ?: null,'external'=>$item['external_part_id'] ?: null,'description'=>$item['description'],'quantity'=>$item['quantity'],'price'=>$item['unit_price'],'list_price'=>$item['list_unit_price']??null,'cost'=>$item['cost_amount'],'total'=>round((float)$item['quantity'] * (float)$item['unit_price'], 2)]);
             $payments = $pdo->prepare('SELECT * FROM job_card_payments WHERE job_card_id=:job ORDER BY id');
             $payments->execute(['job'=>$job['id']]);
             $paid = 0.0;
@@ -300,6 +304,7 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
                 'description' => $description,
                 'quantity' => $quantity,
                 'unit_price' => invoice_money($price),
+                'list_unit_price' => $itemType === 'stock_part' ? (float)$stock['selling_price'] : null,
                 'cost_amount' => $cost,
             ];
         }
@@ -312,6 +317,10 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
         $subtotal += $item['line_total'];
     }
     unset($item);
+    if ($type === 'job_card' && !array_key_exists('discount_type', $source)) {
+        $source['discount_type'] = $job['discount_type'] ?? ((float)($job['discount'] ?? 0) > 0 ? 'fixed' : '');
+        $source['discount_value'] = $job['discount_value'] ?? ($job['discount'] ?? 0);
+    }
     $discountType = in_array($source['discount_type'] ?? '', ['fixed','percentage'], true) ? $source['discount_type'] : null;
     $discountValue = invoice_money($source['discount_value'] ?? 0); $base = $subtotal + $charge;
     $discountAmount = $discountType === 'percentage' ? min($base, round($base*$discountValue/100,2)) : min($base, $discountValue);
@@ -331,10 +340,10 @@ function invoice_create(array $source, string $saveMode, array &$errors): ?int
         $invoiceId = (int)$pdo->lastInsertId();
         $invoiceNo = 'INV-' . str_pad((string)$invoiceId, 6, '0', STR_PAD_LEFT);
         $pdo->prepare('UPDATE invoices SET invoice_no=:no WHERE id=:id')->execute(['no'=>$invoiceNo, 'id'=>$invoiceId]);
-        $insertItem = $pdo->prepare('INSERT INTO invoice_items (invoice_id,item_type,service_id,stock_item_id,external_part_id,description,quantity,unit_price,cost_amount,line_total) VALUES (:invoice,:type,:service,:stock,:external,:description,:quantity,:price,:cost,:total)');
+        $insertItem = $pdo->prepare('INSERT INTO invoice_items (invoice_id,item_type,service_id,stock_item_id,external_part_id,description,quantity,unit_price,list_unit_price,cost_amount,line_total) VALUES (:invoice,:type,:service,:stock,:external,:description,:quantity,:price,:list_price,:cost,:total)');
         $stockTotals = [];
         foreach ($items as $item) {
-            $insertItem->execute(['invoice'=>$invoiceId, 'type'=>$item['type'], 'service'=>$item['service_id'] ?: null, 'stock'=>$item['stock_item_id'] ?: null, 'external'=>$item['external_part_id'] ?: null, 'description'=>$item['description'], 'quantity'=>$item['quantity'], 'price'=>$item['unit_price'], 'cost'=>$item['cost_amount'], 'total'=>$item['line_total']]);
+            $insertItem->execute(['invoice'=>$invoiceId, 'type'=>$item['type'], 'service'=>$item['service_id'] ?: null, 'stock'=>$item['stock_item_id'] ?: null, 'external'=>$item['external_part_id'] ?: null, 'description'=>$item['description'], 'quantity'=>$item['quantity'], 'price'=>$item['unit_price'], 'list_price'=>$item['list_unit_price']??null,'cost'=>$item['cost_amount'], 'total'=>$item['line_total']]);
             if ($item['type'] === 'stock_part') $stockTotals[$item['stock_item_id']] = ($stockTotals[$item['stock_item_id']] ?? 0) + $item['quantity'];
         }
         // Profit is derived from invoice revenue less parts cost, not other income.
