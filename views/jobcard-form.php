@@ -9,6 +9,34 @@
 <script>document.addEventListener('DOMContentLoaded',function(){const vehicle=document.getElementById('job-vehicle'),customer=document.getElementById('job-customer'),vehicles=<?= json_encode($lookups['vehicles']) ?>,customers=<?= json_encode($lookups['customers']) ?>;function put(id,v){const e=document.getElementById(id);if(e)e.value=v||'';}function update(){const v=vehicles.find(x=>String(x.id)===vehicle.value),c=v&&customers.find(x=>String(x.id)===String(v.customer_id));if(v){customer.value=v.customer_id;put('preview-vehicle-number',v.vehicle_number);put('preview-vehicle-type',v.vehicle_type);put('preview-vehicle-model',((v.make||'')+' '+(v.model||'')).trim());put('preview-vehicle-colour',v.colour);put('preview-vehicle-year',v.year);put('preview-vehicle-mileage',v.current_mileage);document.getElementById('preview-side-vehicle').textContent=v.vehicle_number;document.getElementById('preview-side-vehicle-info').textContent=((v.vehicle_type||'')+' · '+(v.make||'')+' '+(v.model||'')).trim();}if(c){put('preview-customer-name',c.name);put('preview-customer-email',c.email);put('preview-customer-address',c.address);document.getElementById('preview-side-customer').textContent=c.name;document.getElementById('preview-side-phone').textContent=c.contact_number;document.getElementById('preview-side-email').textContent=c.email;document.getElementById('job-load-message').textContent='✓ Vehicle & customer details loaded successfully.';document.getElementById('job-load-message').classList.add('loaded');}}vehicle.addEventListener('change',update);update();const tbody=document.getElementById('job-items');function totals(){let sum=0;tbody.querySelectorAll('.job-item').forEach((row,i)=>{row.firstElementChild.textContent=i+1;const total=Math.max(0,(parseFloat(row.querySelector('.item-qty').value)||0)*(parseFloat(row.querySelector('.item-price').value)||0)-(parseFloat(row.querySelector('.item-discount').value)||0));row.querySelector('.item-total').textContent=total.toFixed(2);sum+=total;});document.getElementById('job-subtotal').textContent=sum.toFixed(2);}tbody.addEventListener('input',totals);tbody.addEventListener('click',e=>{if(e.target.closest('.remove-job-item')&&tbody.querySelectorAll('.job-item').length>1){e.target.closest('tr').remove();totals();}});document.getElementById('add-job-item').addEventListener('click',()=>{const n=tbody.querySelectorAll('.job-item').length,row=tbody.querySelector('.job-item').cloneNode(true);row.querySelectorAll('input,select').forEach(el=>{el.name=el.name.replace(/items\\[\\d+\\]/,'items['+n+']');if(el.type==='number')el.value=el.classList.contains('item-qty')?'1':'0';else if(el.tagName==='INPUT')el.value='';});tbody.appendChild(row);totals();});totals();});</script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const vehicle = document.getElementById('job-vehicle');
+    const outstanding = <?= json_encode($lookups['outstanding'] ?? []) ?>;
+    const loadMessage = document.getElementById('job-load-message');
+    const outstandingBox = document.createElement('div');
+    outstandingBox.className = 'alert alert-warning mt-3';
+    outstandingBox.hidden = true;
+    loadMessage.insertAdjacentElement('afterend', outstandingBox);
+    function renderOutstanding() {
+        const selected = (vehicle.value || '').toString();
+        const selectedCustomer = (document.getElementById('job-customer').value || '').toString();
+        const vehicleRecord = outstanding.filter((record) => String(record.vehicle_id || '') === selected || String(record.customer_id || '') === selectedCustomer);
+        if (!selected || !vehicleRecord.length) {
+            outstandingBox.hidden = true;
+            outstandingBox.innerHTML = '';
+            return;
+        }
+        outstandingBox.innerHTML = '<strong>Previous unpaid amount</strong><div class="mt-2">' + vehicleRecord.map((record) =>
+            '<div><b>' + String(record.record_type) + ' ' + String(record.reference_no) + '</b> · ' + String(record.status).toUpperCase() +
+            ' · Due: Rs. ' + Number(record.balance_amount || 0).toFixed(2) + '</div>'
+        ).join('') + '</div>';
+        outstandingBox.hidden = false;
+    }
+    vehicle.addEventListener('change', renderOutstanding);
+    renderOutstanding();
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('jobcard-form');
     form.addEventListener('invalid', function (event) {
         const details = event.target.closest('details');

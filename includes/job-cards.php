@@ -103,9 +103,26 @@ function mechanic_is_available_today(int $mechanicId): bool
 
 function job_card_lookup(): array
 {
+    if (!function_exists('invoice_ensure_tables')) require_once __DIR__ . '/invoices.php';
+    invoice_ensure_tables();
+    $outstanding = database()->query("SELECT i.id, i.customer_id, i.vehicle_id, i.invoice_no AS reference_no, i.invoice_date AS record_date, i.total_amount, i.paid_amount, i.balance_amount, i.payment_status AS status, 'Invoice' AS record_type, c.name AS customer_name, v.vehicle_number
+        FROM invoices i
+        JOIN customers c ON c.id=i.customer_id
+        LEFT JOIN vehicles v ON v.id=i.vehicle_id
+        WHERE i.payment_status IN ('due','partial') AND i.balance_amount > 0.009
+        UNION ALL
+        SELECT j.id, j.customer_id, j.vehicle_id, j.job_card_no AS reference_no, DATE(COALESCE(j.completed_at,j.created_at)) AS record_date, j.total_amount, j.paid_amount, j.balance_amount,
+            CASE WHEN j.paid_amount > 0 THEN 'partial' ELSE 'due' END AS status, 'Job Card' AS record_type, c.name AS customer_name, v.vehicle_number
+        FROM job_cards j
+        JOIN customers c ON c.id=j.customer_id
+        LEFT JOIN vehicles v ON v.id=j.vehicle_id
+        WHERE j.status='completed' AND j.balance_amount > 0.009
+          AND NOT EXISTS (SELECT 1 FROM invoices i2 WHERE i2.job_card_id=j.id AND i2.payment_status <> 'cancelled')
+        ORDER BY record_date DESC, id DESC")->fetchAll();
     return [
         'customers' => database()->query("SELECT id,name,contact_number,email,address FROM customers WHERE status='active' ORDER BY name")->fetchAll(),
         'vehicles' => database()->query("SELECT v.*,c.name AS customer_name FROM vehicles v JOIN customers c ON c.id=v.customer_id WHERE v.status='active' ORDER BY v.vehicle_number")->fetchAll(),
+        'outstanding' => $outstanding,
         'employees' => available_mechanics(),
         'bays' => database()->query("SELECT bay_name FROM bays WHERE status='active' ORDER BY bay_name")->fetchAll(),
         'services' => database()->query("SELECT id,service_code,service_name,description,price FROM services WHERE status='active' ORDER BY service_name")->fetchAll(),
