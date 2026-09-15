@@ -35,7 +35,6 @@ if ($isSalesReport) {
         ['label' => 'Spare Parts Sales', 'value' => $salesCategoryValues['Spare Parts Sales'] ?? 0, 'color' => '#2f80ed'],
         ['label' => 'Service Income', 'value' => $salesCategoryValues['Service Income'] ?? 0, 'color' => '#36b979'],
         ['label' => 'Special Charges', 'value' => $salesCategoryValues['Special Service Charges'] ?? 0, 'color' => '#f79009'],
-        ['label' => 'Other', 'value' => $salesCategoryValues['Total Discount'] ?? 0, 'color' => '#7653d6'],
     ];
     $salesCategoryTotal = max(0.01, array_sum(array_column($salesCategories, 'value')));
     $salesTotalValue = $salesCategoryValues['Total Sales'] ?? 0;
@@ -47,6 +46,7 @@ if ($isSalesReport) {
     }
 }
 ?>
+<?php if ($isSalesReport): ?><div class="alert alert-info">Total Discount = Invoice Discounts + Part Price Reductions. Part price reductions are already included in selling prices and are not deducted again. Older items without a saved list price are excluded from part price reductions.</div><?php endif; ?>
 <div class="admin-page-heading report-page-heading">
     <div>
         <div class="breadcrumb-line">Admin / Reports / <?= e($sectionTitle) ?></div>

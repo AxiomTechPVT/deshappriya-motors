@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/price-reductions.php';
+require_once __DIR__ . '/job-discounts.php';
+
 function ensure_job_card_tables(): void
 {
     static $ready = false;
@@ -17,6 +20,10 @@ function ensure_job_card_tables(): void
     if (!$pdo->query("SHOW COLUMNS FROM job_card_payments LIKE 'change_amount'")->fetch()) $pdo->exec("ALTER TABLE job_card_payments ADD change_amount DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER amount_received");
     $sellingPriceColumn = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='expense_external_parts' AND COLUMN_NAME='selling_price'")->fetchColumn();
     if (!(int)$sellingPriceColumn) $pdo->exec("ALTER TABLE expense_external_parts ADD COLUMN selling_price DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER unit_cost");
+    foreach (['discount_type' => "VARCHAR(20) NULL", 'discount_value' => "DECIMAL(12,2) NULL"] as $column => $definition) {
+        if (!$pdo->query("SHOW COLUMNS FROM job_cards LIKE '{$column}'")->fetch()) $pdo->exec("ALTER TABLE job_cards ADD {$column} {$definition}");
+    }
+    ensure_price_snapshot_column('job_card_items');
     $ready = true;
 }
 
@@ -276,7 +283,7 @@ function handle_job_card_request(string $section): void
         $performance->execute(['id'=>$id]);
         $serviceCharge = database()->prepare('SELECT COALESCE((SELECT amount FROM job_card_service_charges WHERE job_card_id=:id), :fallback)');
         $serviceCharge->execute(['id'=>$id,'fallback'=>(float)($job['service_charge'] ?? 0)]);
-        echo json_encode(['service_charge'=>(float)$serviceCharge->fetchColumn(),'total'=>(float)$job['total_amount'],'paid'=>(float)$job['paid_amount'],'balance'=>(float)$job['balance_amount'],'started_at'=>$job['started_at'],'performance'=>$performance->fetch() ?: null,'payments'=>$payments->fetchAll()]);
+        echo json_encode(['service_charge'=>(float)$serviceCharge->fetchColumn(),'subtotal'=>(float)$job['subtotal'],'discount'=>(float)($job['discount']??0),'discount_type'=>$job['discount_type']??null,'discount_value'=>$job['discount_value']??null,'status'=>$job['status'],'total'=>(float)$job['total_amount'],'paid'=>(float)$job['paid_amount'],'balance'=>(float)$job['balance_amount'],'started_at'=>$job['started_at'],'performance'=>$performance->fetch() ?: null,'payments'=>$payments->fetchAll()]);
         return;
     }
     if ($section === 'jobcards-service-charge' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -355,26 +362,16 @@ function handle_job_card_request(string $section): void
             flash('error', 'Enter valid performance start and end times before generating the bill.');
             redirect('index.php?page=admin&section=jobcards-view&id='.$id);
         }
-        $totalAmount = (float)$job['total_amount'];
-        if ($totalAmount <= 0.009) {
-            flash('error', 'Add at least one spare part or service charge before generating a payment receipt.');
-            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
-        }
-        $balance = max(0, (float)$job['balance_amount']);
-        if ($balance <= 0.009) {
-            $latestReceipt = database()->prepare('SELECT id FROM job_card_payments WHERE job_card_id=:job ORDER BY id DESC LIMIT 1');
-            $latestReceipt->execute(['job' => $id]);
-            $latestReceiptId = $latestReceipt->fetchColumn();
-            if ($latestReceiptId) redirect('index.php?page=admin&section=jobcards-receipt&id='.(int)$latestReceiptId);
-            flash('error', 'This job card is already fully paid.');
-            redirect('index.php?page=admin&section=jobcards-view&id='.$id);
-        }
-        if ($amountReceived <= 0 || ($method !== 'cash' && $amountReceived > $balance + 0.009)) { flash('error', $method === 'cash' ? 'Enter the cash received amount.' : 'Card or bank payment cannot exceed the outstanding balance.'); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
-        $amountApplied = min($amountReceived, $balance); $changeAmount = max(0, $amountReceived - $amountApplied);
         ensure_stock_tables();
         $pdo = database(); $receiptNo = 'PAY-' . date('ymdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
         $pdo->beginTransaction();
         try {
+            $lock = $pdo->prepare('SELECT * FROM job_cards WHERE id=:id FOR UPDATE');
+            $lock->execute(['id'=>$id]);
+            $lockedJob = $lock->fetch();
+            if (!$lockedJob) throw new RuntimeException('Job card not found.');
+            $calculation = job_payment_calculation($lockedJob, $_POST);
+            $amountReceived = $calculation['received']; $amountApplied = $calculation['applied']; $changeAmount = $calculation['change']; $method = $calculation['method'];
             $durationMinutes = ($performanceEnd->getTimestamp() - $performanceStart->getTimestamp()) / 60;
             $pdo->prepare('INSERT INTO job_card_performance (job_card_id,mechanic_id,start_time,end_time,duration_minutes,recorded_by) VALUES (:job,:mechanic,:start,:end,:duration,:user) ON DUPLICATE KEY UPDATE mechanic_id=VALUES(mechanic_id),start_time=VALUES(start_time),end_time=VALUES(end_time),duration_minutes=VALUES(duration_minutes),recorded_by=VALUES(recorded_by)')->execute(['job'=>$id,'mechanic'=>$job['mechanic_id'] ?: null,'start'=>$performanceStart->format('Y-m-d H:i:s'),'end'=>$performanceEnd->format('Y-m-d H:i:s'),'duration'=>$durationMinutes,'user'=>current_user()['id'] ?? null]);
             foreach ($job['items'] as $item) {
@@ -390,8 +387,8 @@ function handle_job_card_request(string $section): void
             }
             $pdo->prepare('INSERT INTO job_card_payments (job_card_id,receipt_no,amount,amount_received,change_amount,payment_method,created_by) VALUES (:job,:receipt,:amount,:received,:change,:method,:user)')->execute(['job'=>$id,'receipt'=>$receiptNo,'amount'=>$amountApplied,'received'=>$amountReceived,'change'=>$changeAmount,'method'=>$method,'user'=>current_user()['id'] ?? null]);
             $paymentId = (int)$pdo->lastInsertId();
-            $paid = (float)$job['paid_amount'] + $amountApplied; $newBalance = max(0, (float)$job['total_amount'] - $paid);
-            $pdo->prepare('UPDATE job_cards SET paid_amount=:paid,balance_amount=:balance,payment_method=:method,status="completed",completed_at=COALESCE(completed_at,NOW()) WHERE id=:id')->execute(['paid'=>$paid,'balance'=>$newBalance,'method'=>$method,'id'=>$id]);
+            $paid = $calculation['paid']; $newBalance = $calculation['balance'];
+            $pdo->prepare('UPDATE job_cards SET discount=:discount,discount_type=:discount_type,discount_value=:discount_value,total_amount=:total,paid_amount=:paid,balance_amount=:balance,payment_method=:method,status="completed",completed_at=COALESCE(completed_at,NOW()) WHERE id=:id')->execute(['discount'=>$calculation['discount'],'discount_type'=>$calculation['discount_type'],'discount_value'=>$calculation['discount_value'],'total'=>$calculation['total'],'paid'=>$paid,'balance'=>$newBalance,'method'=>$method,'id'=>$id]);
             $pdo->commit();
             // Generate the invoice now so customer totals update before the invoice list is opened.
             require_once __DIR__ . '/invoices.php';
@@ -400,10 +397,10 @@ function handle_job_card_request(string $section): void
         } catch (Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); flash('error', 'Payment could not be recorded: ' . $exception->getMessage()); redirect('index.php?page=admin&section=jobcards-view&id='.$id); }
     }
     if ($section === 'jobcards-receipt') {
-        $statement = database()->prepare('SELECT p.*,j.job_card_no,j.subtotal,j.service_charge,j.total_amount,j.paid_amount,j.balance_amount,c.name AS customer_name,c.contact_number,v.vehicle_number,perf.start_time AS performance_start,perf.end_time AS performance_end,perf.duration_minutes AS performance_duration,(SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=j.id) AS parts_total FROM job_card_payments p JOIN job_cards j ON j.id=p.job_card_id JOIN customers c ON c.id=j.customer_id LEFT JOIN vehicles v ON v.id=j.vehicle_id LEFT JOIN job_card_performance perf ON perf.job_card_id=j.id WHERE p.id=:id LIMIT 1');
+        $statement = database()->prepare('SELECT p.*,j.job_card_no,j.subtotal,j.service_charge,j.discount,j.discount_type,j.discount_value,j.total_amount,j.paid_amount,j.balance_amount,c.name AS customer_name,c.contact_number,v.vehicle_number,perf.start_time AS performance_start,perf.end_time AS performance_end,perf.duration_minutes AS performance_duration,(SELECT COALESCE(SUM(amount),0) FROM job_card_items WHERE job_card_id=j.id) AS parts_total FROM job_card_payments p JOIN job_cards j ON j.id=p.job_card_id JOIN customers c ON c.id=j.customer_id LEFT JOIN vehicles v ON v.id=j.vehicle_id LEFT JOIN job_card_performance perf ON perf.job_card_id=j.id WHERE p.id=:id LIMIT 1');
         $statement->execute(['id'=>$id]); $payment = $statement->fetch();
         if (!$payment) { http_response_code(404); exit('Receipt not found.'); }
-        $items = database()->prepare('SELECT item_type,item_name,item_code,quantity,unit_price,amount FROM job_card_items WHERE job_card_id=:job ORDER BY id');
+        $items = database()->prepare('SELECT item_type,item_name,item_code,quantity,unit_price,list_unit_price,amount FROM job_card_items WHERE job_card_id=:job ORDER BY id');
         $items->execute(['job'=>$payment['job_card_id']]); $receiptItems = $items->fetchAll();
         $receiptSettings = receipt_settings();
         $title = 'Payment Receipt ' . $payment['receipt_no']; $sectionForHeader = $section;
@@ -485,7 +482,7 @@ function handle_job_card_request(string $section): void
                     $serviceCharge = (float)($job['service_charge'] ?? 0) + ($quantity * $price);
                     $total = $partsTotal + $serviceCharge;
                 } else {
-                    $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:amount)')->execute(['card'=>$id,'type'=>$type,'stock'=>$stockId?:null,'service'=>$serviceId?:null,'name'=>$name,'code'=>$code,'quantity'=>$quantity,'price'=>$price,'amount'=>$quantity*$price]);
+                    $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,list_unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:list_price,:amount)')->execute(['card'=>$id,'type'=>$type,'stock'=>$stockId?:null,'service'=>$serviceId?:null,'name'=>$name,'code'=>$code,'quantity'=>$quantity,'price'=>$price,'list_price'=>$type==='part'?stock_list_price_snapshot($stockId):null,'amount'=>$quantity*$price]);
                     $itemId = (int)$pdo->lastInsertId();
                     if ($type === 'part') reserve_job_card_stock($pdo, $stockId, $quantity, $itemId, $job);
                     if ($type === 'manual') add_external_part_expense($job, $name, $quantity, $buyingPrice, $price);
@@ -604,8 +601,8 @@ function handle_job_card_request(string $section): void
                 $insert->execute(['no'=>'TMP-'.bin2hex(random_bytes(4)),'customer'=>$input['customer_id'],'vehicle'=>$input['vehicle_id'] ?: null,'bay'=>$input['bay_name'],'mechanic'=>$input['mechanic_id'] ?: null,'complaint'=>$input['complaint'] ?: null,'work'=>$input['requested_work'] ?: null,'notes'=>$input['notes'] ?: null,'delivery'=>$input['expected_delivery_date'] ?: null,'priority'=>$input['priority'],'status'=>$saveStatus,'subtotal'=>$subtotal,'service_charge'=>$serviceCharge,'total'=>$total,'user'=>current_user()['id'] ?? null,'started'=>$saveStatus==='ongoing'?date('Y-m-d H:i:s'):null]);
                 $saved = (int)$pdo->lastInsertId(); $pdo->prepare('UPDATE job_cards SET job_card_no=:no WHERE id=:id')->execute(['no'=>job_card_no($saved),'id'=>$saved]);
                 if ($serviceCharge > 0) $pdo->prepare('INSERT INTO job_card_service_charges (job_card_id,amount,created_by) VALUES (:job,:amount,:user)')->execute(['job' => $saved, 'amount' => $serviceCharge, 'user' => current_user()['id'] ?? null]);
-                $itemInsert = $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:amount)');
-                foreach ($itemRows as $item) $itemInsert->execute(['card'=>$saved,'type'=>$item['type'],'stock'=>$item['stock_id'] ?: null,'service'=>$item['service_id'] ?: null,'name'=>$item['name'],'code'=>$item['code'] ?: null,'quantity'=>$item['quantity'],'price'=>$item['price'],'amount'=>$item['amount']]);
+                $itemInsert = $pdo->prepare('INSERT INTO job_card_items (job_card_id,item_type,stock_item_id,service_id,item_name,item_code,quantity,unit_price,list_unit_price,amount) VALUES (:card,:type,:stock,:service,:name,:code,:quantity,:price,:list_price,:amount)');
+                foreach ($itemRows as $item) $itemInsert->execute(['card'=>$saved,'type'=>$item['type'],'stock'=>$item['stock_id'] ?: null,'service'=>$item['service_id'] ?: null,'name'=>$item['name'],'code'=>$item['code'] ?: null,'quantity'=>$item['quantity'],'price'=>$item['price'],'list_price'=>$item['type']==='part'?stock_list_price_snapshot($item['stock_id']):null,'amount'=>$item['amount']]);
                 $pdo->commit(); flash('success','Job card created successfully.'); redirect('index.php?page=admin&section=jobcards-'.$saveStatus);
             } catch (Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); $errors[] = 'Job card could not be saved.'; }
         }
