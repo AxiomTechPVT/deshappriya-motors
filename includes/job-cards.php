@@ -69,17 +69,22 @@ function job_card_no(int $id): string
     return 'JC-' . date('ym') . '-' . str_pad((string)$id, 5, '0', STR_PAD_LEFT);
 }
 
+function job_card_today(): string
+{
+    return (new DateTimeImmutable('now', new DateTimeZone('Asia/Colombo')))->format('Y-m-d');
+}
+
 function available_mechanics(): array
 {
-    return database()->query("SELECT DISTINCT e.id,e.name,e.role_position
+    $statement = database()->prepare("SELECT DISTINCT e.id,e.name,e.role_position
         FROM employees e
         JOIN employee_attendance a ON a.employee_id=e.id
-            AND a.id=(SELECT latest.id FROM employee_attendance latest
-                WHERE latest.employee_id=e.id AND latest.attendance_date<=CURDATE()
-                ORDER BY latest.attendance_date DESC,latest.id DESC LIMIT 1)
-            AND a.attendance_status IN ('present','half_day')
+            AND a.attendance_date=:today
+            AND a.check_in IS NOT NULL
         WHERE e.status='active'
-        ORDER BY e.name")->fetchAll();
+        ORDER BY e.name");
+    $statement->execute(['today' => job_card_today()]);
+    return $statement->fetchAll();
 }
 
 function mechanic_is_available_today(int $mechanicId): bool
@@ -88,13 +93,11 @@ function mechanic_is_available_today(int $mechanicId): bool
     $statement = database()->prepare("SELECT 1
         FROM employees e
         JOIN employee_attendance a ON a.employee_id=e.id
-            AND a.id=(SELECT latest.id FROM employee_attendance latest
-                WHERE latest.employee_id=e.id AND latest.attendance_date<=CURDATE()
-                ORDER BY latest.attendance_date DESC,latest.id DESC LIMIT 1)
-            AND a.attendance_status IN ('present','half_day')
+            AND a.attendance_date=:today
+            AND a.check_in IS NOT NULL
         WHERE e.id=:id AND e.status='active'
         LIMIT 1");
-    $statement->execute(['id' => $mechanicId]);
+    $statement->execute(['id' => $mechanicId, 'today' => job_card_today()]);
     return (bool)$statement->fetchColumn();
 }
 
